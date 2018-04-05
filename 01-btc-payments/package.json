@@ -1,0 +1,25 @@
+{
+  "name": "bob-chicago-dev-01",
+  "version": "1.0.0",
+  "description": "Add BTC payments to your T-shirt store!",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha dist/test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BOB-Chicago/dev-series.git"
+  },
+  "keywords": [
+    "BOB",
+    "Chicago",
+    "BTC",
+    "payments"
+  ],
+  "author": "Ian Shipman",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/BOB-Chicago/dev-series/issues"
+  },
+  "homepage": "https://github.com/BOB-Chicago/dev-series#readme"
+}
