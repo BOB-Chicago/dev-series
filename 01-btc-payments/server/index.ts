@@ -3,8 +3,8 @@ import { Product } from "../lib";
 import { readFileSync } from "fs";
 
 if (process.env.INVENTORYDATA === undefined) {
-	console.log("INVENTORYDATA must be set");
-	process.exit(1);
+  console.log("INVENTORYDATA must be set");
+  process.exit(1);
 }
 
 const raw: string = readFileSync(<string>process.env.INVENTORYDATA, "utf8");
@@ -15,8 +15,8 @@ const wss = new WebSocket.Server({ port: 8081 });
 /* WEBSOCKET SERVER */
 
 wss.on("connection", ws => {
-	ws.send({
-		__type: "Products",
-		data: inventory 
-	});
+  ws.send({
+    __type: "Products",
+    data: inventory
+  });
 });
