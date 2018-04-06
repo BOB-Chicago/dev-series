@@ -21,5 +21,10 @@
   "bugs": {
     "url": "https://github.com/BOB-Chicago/dev-series/issues"
   },
-  "homepage": "https://github.com/BOB-Chicago/dev-series#readme"
+  "homepage": "https://github.com/BOB-Chicago/dev-series#readme",
+  "dependencies": {
+    "@types/ws": "^4.0.2",
+    "maquette": "^3.2.2",
+    "ws": "^5.1.1"
+  }
 }

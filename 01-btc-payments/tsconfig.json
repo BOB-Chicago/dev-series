@@ -1,6 +1,7 @@
 {
 	"compilerOptions": {
 		"alwaysStrict": true,
+		"lib": ["DOM", "es2016"],
 		"module": "commonjs",
 		"noImplicitAny": true,
 		"noImplicitReturns": true,
