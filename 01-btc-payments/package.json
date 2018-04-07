@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "scripts/build",
+    "server": "INVENTORYDATA=data/inventory.json node build/server.js",
     "test": "mocha dist/test"
   },
   "repository": {

@@ -5,7 +5,7 @@ export type Size = "S" | "M" | "L";
 export interface Selection {
   product: Product;
   quantity: number;
-  size: Size | null;
+  size: Size;
 }
 
 export type Message = Products | Order | Confirmation;

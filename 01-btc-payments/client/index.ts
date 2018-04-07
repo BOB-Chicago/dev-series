@@ -10,7 +10,7 @@ type Page = "welcome" | "store" | "cart" | "payment" | "confirmation";
 type State = {
   cart: Map<string, Selection>;
   page: Page;
-  products: Product[];
+  products: Map<string, Product>;
   selections: Map<string, Selection>;
 };
 
@@ -25,7 +25,7 @@ type EventT =
 
 interface Load {
   __ctor: "Load";
-  products: Product[];
+  products: Map<string, Product>;
 }
 
 interface Goto {
@@ -61,7 +61,7 @@ interface ConfirmOk {
 let state: State = {
   cart: new Map(),
   page: "welcome",
-  products: [],
+  products: new Map(),
   selections: new Map()
 };
 
@@ -76,7 +76,7 @@ ws.addEventListener("message", (e: MessageEvent) => {
     case "Products": {
       event({
         __ctor: "Load",
-        products: msg.data
+        products: new Map(msg.data.map(p => [p.id, p] as [string, Product]))
       });
       break;
     }
@@ -95,24 +95,63 @@ ws.addEventListener("message", (e: MessageEvent) => {
 function step(ev: EventT, s0: State): State {
   switch (ev.__ctor) {
     case "Goto": {
+      console.log("GOTO", ev.page);
       s0.page = ev.page;
       return s0;
     }
     case "Load": {
+      console.log("LOAD");
       s0.products = ev.products;
       s0.page = "store";
       return s0;
     }
     case "CartAdd": {
+      console.log("CARTADD");
+      const sel = s0.selections.get(ev.product) as Selection;
+      const cartKey = ev.product + ":" + sel.size;
+      if (s0.cart.has(cartKey)) {
+        (s0.cart.get(cartKey) as Selection).quantity += sel.quantity;
+      } else {
+        s0.cart.set(cartKey, {
+          product: sel.product,
+          quantity: sel.quantity,
+          size: sel.size
+        });
+      }
+      s0.selections.delete(ev.product);
       return s0;
     }
     case "QuantityClick": {
+      console.log("QUANTITYCLICK");
+      if (s0.selections.has(ev.product)) {
+        const sel = s0.selections.get(ev.product) as Selection;
+        switch (ev.action) {
+          case "up": {
+            sel.quantity += 1;
+            break;
+          }
+          case "down": {
+            sel.quantity = Math.max(0, sel.quantity - 1);
+          }
+        }
+      }
       return s0;
     }
     case "SizeClick": {
+      console.log("SIZECLICK");
+      if (!s0.selections.has(ev.product)) {
+        s0.selections.set(ev.product, {
+          product: s0.products.get(ev.product) as Product,
+          quantity: 1,
+          size: ev.size
+        });
+      } else {
+        (s0.selections.get(ev.product) as Selection).size = ev.size;
+      }
       return s0;
     }
     case "SubmitOrder": {
+      console.log("SUBMITORDER");
       const ss = [] as Selection[];
       s0.cart.forEach(s => ss.push(s));
       const order = {
@@ -123,6 +162,7 @@ function step(ev: EventT, s0: State): State {
       return s0;
     }
     case "ConfirmOk": {
+      console.log("CONFIRMOK");
       s0.page = "store";
       s0.cart = new Map();
       s0.selections = new Map();
@@ -181,13 +221,17 @@ function store(): VNode {
       page: "payment"
     });
   };
+  const ps = [] as VNode[];
+  state.products.forEach(p => {
+    ps.push(renderProduct(p));
+  });
   return h("div.container", [
     h("div.row", { key: 1 }, [h("h1", ["Bitcoin & Open Blockchain Store"])]),
     h("div.row", { key: 2 }, [
       h("div.col", { key: 1, onclick: toCart }, ["view cart"]),
       h("div.col", { key: 2, onclick: toPayment }, ["checkout"])
     ]),
-    h("div.row", { key: 3 }, state.products.map(renderProduct))
+    h("div.row", { key: 3 }, ps)
   ]);
 }
 
@@ -198,13 +242,17 @@ function renderProduct(p: Product): VNode {
       product: p.id
     });
   };
-  return h("div.container", { key: p.id }, [
-    h("div.row", { key: 1 }, [p.caption]), // caption
-    h("div.row", { key: 2 }, [h("img", { src: `assets/${p.id}.png` })]), // image
+  const children = [
+    h("div.row", { key: "caption" }, [p.caption]), // caption
+    h("div.row", { key: "image" }, [h("img", { src: "shirt-blank.svg" })]), // image
+    h("div.row", { key: "price" }, ["$" + dollars(p.price).toString()]), // price
     sizes(p.id), // sizes
-    quantity(p.id), // quantity
-    h("div.row", { key: 5, onclick: f }, ["Add to cart"])
-  ]);
+    quantity(p.id) // quantity
+  ];
+  if (selectionComplete(p.id)) {
+    children.push(h("div.row", { key: "add", onclick: f }, ["Add to cart"]));
+  }
+  return h("div.container", { key: p.id }, children);
 }
 
 // Simple size selector
@@ -220,13 +268,13 @@ function sizes(pid: string): VNode {
   }
   return h(
     "div.row",
-    { key: 3 },
+    { key: "sizes" },
     (["S", "M", "L"] as Size[]).map(s => {
       const isSelected =
         state.selections.has(pid) &&
         (state.selections.get(pid) as Selection).size === s;
       return h(
-        "div.col-sm.button",
+        "div.col-sm",
         { key: s, onclick: f(s), classes: { selected: isSelected } },
         [s]
       );
@@ -253,7 +301,7 @@ function quantity(pid: string): VNode {
   const q = state.selections.has(pid)
     ? (state.selections.get(pid) as Selection).quantity
     : 0;
-  return h("div.row", { key: 4 }, [
+  return h("div.row", { key: "quantity" }, [
     h("div.col-sm", { key: 1, onclick: down }, ["(-)"]),
     h("div.col-sm", { key: 2 }, [q.toString()]),
     h("div.col-sm", { key: 3, onclick: up }, ["(+)"])
@@ -270,7 +318,7 @@ function cart(): VNode {
   };
   let total = 0;
   const rows = [] as VNode[];
-  state.selections.forEach(s => {
+  state.cart.forEach(s => {
     total += s.quantity * s.product.price;
     rows.push(
       h("div.row", { key: s.product.id }, [
@@ -278,7 +326,7 @@ function cart(): VNode {
           s.product.caption,
           s.size as string,
           s.quantity.toString(),
-          (s.quantity * s.product.price).toString()
+          dollars(s.quantity * s.product.price).toString()
         ])
       ])
     );
@@ -287,7 +335,7 @@ function cart(): VNode {
     h("div.row", { key: 1 }, ["Shopping cart"]),
     h("div.row", { key: 2 }, cols(["Desc", "Size", "Quantity", "Price"])),
     rows.length > 0 ? rows : "No items",
-    h("div.row", { key: 3 }, ["Total: " + total.toString()]),
+    h("div.row", { key: 3 }, ["Total: $" + dollars(total).toString()]),
     h("div.row", { key: 4, onclick: f }, ["Continue shopping"])
   ]);
 }
@@ -313,7 +361,7 @@ function confirmation(): VNode {
     });
   };
   const rows = [] as VNode[];
-  state.selections.forEach(s =>
+  state.cart.forEach(s =>
     rows.push(
       h(
         "div.row",
@@ -333,6 +381,18 @@ function confirmation(): VNode {
 
 function cols(xs: string[]): VNode[] {
   return xs.map(x => h("div.col-sm", { key: x.toString() }, [x]));
+}
+
+function dollars(cs: number): number {
+  return cs / 100;
+}
+
+function selectionComplete(pid: string): boolean {
+  if (state.selections.has(pid)) {
+    const sel = state.selections.get(pid) as Selection;
+    return sel.size !== null && sel.quantity > 0;
+  }
+  return false;
 }
 
 projector.append(document.body, render);

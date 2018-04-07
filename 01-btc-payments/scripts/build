@@ -4,5 +4,5 @@ set -e
 webpack-cli
 mkdir -p build/app
 mv build/client.js build/app/index.js
-cp client/index.css client/index.html build/app/
+cp client/*.css client/*.html client/*.svg build/app/
 
