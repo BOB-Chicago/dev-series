@@ -159,11 +159,14 @@ function store(): VNode {
   state.products.forEach(p => {
     ps.push(renderProduct(p));
   });
+  let cartSize = 0;
+  state.cart.forEach(s => (cartSize += s.quantity));
   return h("div.container", [
     h("div.row", { key: 1 }, [h("h1", ["Bitcoin & Open Blockchain Store"])]),
-    h("div.row", { key: 2 }, [
-      h("div.col", { key: 1, onclick: gotoPage("cart") }, ["view cart"]),
-      h("div.col", { key: 2, onclick: gotoPage("payment") }, ["checkout"])
+    h("div.row.nav", { key: 2 }, [
+      h("div.col", { key: 1, onclick: gotoPage("cart") }, [
+        `View cart (${cartSize})`
+      ])
     ]),
     h("div.row", { key: 3 }, ps)
   ]);
@@ -178,7 +181,7 @@ function renderProduct(p: Product): VNode {
   };
   const children = [
     h("div.row", { key: "caption" }, [p.caption]), // caption
-    h("div.row", { key: "image" }, [h("img", { src: "shirt-blank.svg" })]), // image
+    h("div.row", { key: "image" }, [h("img", { src: `${p.id}.svg` })]), // image
     h("div.row", { key: "price" }, ["$" + dollars(p.price).toString()]), // price
     sizes(p.id), // sizes
     quantity(p.id) // quantity
@@ -186,7 +189,7 @@ function renderProduct(p: Product): VNode {
   if (selectionComplete(p.id)) {
     children.push(h("div.row", { key: "add", onclick: f }, ["Add to cart"]));
   }
-  return h("div.container", { key: p.id }, children);
+  return h("div.product", { key: p.id }, [h("div.container", children)]);
 }
 
 // Simple size selector
@@ -259,14 +262,19 @@ function cart(): VNode {
       ])
     );
   });
-  return h("div.container", [
-    h("div.row", { key: 1 }, ["Shopping cart"]),
+  const items = [
+    h("div.row", { key: 1 }, [h("h1", ["Shopping cart"])]),
     h("div.row", { key: 2 }, cols(["Desc", "Size", "Quantity", "Price"])),
     rows.length > 0 ? rows : "No items",
     h("div.row", { key: 3 }, ["Total: $" + dollars(total).toString()]),
-    h("div.row", { key: 4, onclick: gotoPage("store") }, ["Continue shopping"]),
-    h("div.row", { key: 5, onclick: gotoPage("payment") }, ["Checkout"])
-  ]);
+    h("div.row", { key: 4, onclick: gotoPage("store") }, ["Continue shopping"])
+  ];
+  if (state.cart.size > 0) {
+    items.push(
+      h("div.row", { key: 5, onclick: gotoPage("payment") }, ["Checkout"])
+    );
+  }
+  return h("div.container", items);
 }
 
 // Payment page
