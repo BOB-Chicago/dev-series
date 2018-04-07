@@ -1,1 +1,13 @@
+.selected {
+  background: blue;
+}
 
+.button {
+  background: black;
+  color: white;
+}
+
+.button:hover {
+  background: green;
+  color: black;
+}

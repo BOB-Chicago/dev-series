@@ -8,9 +8,9 @@ import { Product, Message } from "../lib";
 type Size = "S" | "M" | "L";
 
 type Selection = {
-  id: string;
-  size: Size | null;
+  product: Product;
   quantity: number;
+  size: Size | null;
 };
 
 type State = {
@@ -44,6 +44,19 @@ ws.addEventListener("message", (e: MessageEvent) => {
 
 /* CONTINUATIONS */
 
+function addToCart(sel: Selection): (ev: MouseEvent) => void {
+  const f = (ev: MouseEvent) => {
+    for (let s of state.selections) {
+      if (s.product.id === sel.product.id && s.size === sel.size) {
+        s.quantity += sel.quantity;
+        return;
+      }
+    }
+    state.selections.push(sel);
+  };
+  return f;
+}
+
 /* VIEWS */
 
 // Welcome!
@@ -58,14 +71,14 @@ function store(): VNode {
   const toCart = (ev: MouseEvent) => {
     projector.replace(root, cart);
   };
-  const toCheckout = (ev: MouseEvent) => {
-    projector.replace(root, checkout);
+  const toPayment = (ev: MouseEvent) => {
+    projector.replace(root, payment);
   };
   return h("div.container", [
     h("div.row", [h("h1", ["Bitcoin & Open Blockchain Store"])]),
     h("div.row", [
       h("div.col", { onclick: toCart }, ["view cart"]),
-      h("div.col", { onclick: toCheckout }, ["checkout"])
+      h("div.col", { onclick: toPayment }, ["checkout"])
     ]),
     h("div.row", state.products.map(renderProduct))
   ]);
@@ -73,19 +86,20 @@ function store(): VNode {
 
 function renderProduct(p: Product): VNode {
   const sel: Selection = {
-    id: p.id,
-    size: null,
-    quantity: 0
+    product: p,
+    quantity: 0,
+    size: null
   };
   return h("div.product", [
     h("div.row", [p.caption]), // caption
     h("div.row", [h("img", { src: `assets/${p.id}.png` })]), // image
     sizes(sel), // sizes
     quantity(sel), // quantity
-    addToCart(sel)
+    h("div.row", { onclick: addToCart(sel) }, ["Add to cart"])
   ]);
 }
 
+// Simple size selector
 function sizes(sel: Selection): VNode {
   function f(s: Size): (e: MouseEvent) => void {
     return e => {
@@ -94,12 +108,14 @@ function sizes(sel: Selection): VNode {
   }
   return h(
     "div.row",
-    (["S", "M", "L"] as Size[]).map(s =>
-      h("div.col-sm", { onclick: f(s) }, [s])
-    )
+    (["S", "M", "L"] as Size[]).map(s => {
+      const cl = s == sel.size ? "selected" : "";
+      return h("div.col-sm", { onclick: f(s), class: cl }, [s]);
+    })
   );
 }
 
+// Simple quantity updater: "(-) q (+)"
 function quantity(sel: Selection): VNode {
   const up = (ev: MouseEvent) => {
     sel.quantity++;
@@ -114,38 +130,62 @@ function quantity(sel: Selection): VNode {
   ]);
 }
 
-function addToCart(sel: Selection): VNode {
-  const f = (ev: MouseEvent) => {
-    for (let s of state.selections) {
-      if (s.id === sel.id && s.size === sel.size) {
-        s.quantity += sel.quantity;
-        return;
-      }
-    }
-    state.selections.push(sel);
-  };
-  return h("div.row", { onclick: f }, ["Add to cart"]);
-}
-
 // Shopping cart
 function cart(): VNode {
+  let total = 0;
   const rows = state.selections.map(s => {
+    total += s.quantity * s.product.price;
     return h("div.row", [
-      h("div.col-sm", [s.id]),
-      h("div.col-sm", [s.size]),
-      h("div.col-sm", [s.quantity])
+      cols([
+        s.product.caption,
+        s.size as string,
+        s.quantity.toString(),
+        (s.quantity * s.product.price).toString()
+      ])
     ]);
   });
-
   return h("div.container", [
     h("div.row", ["Shopping cart"]),
-    rows.length > 0 ? rows : "No items"
+    h("div.row", cols(["Desc", "Size", "Quantity", "Price"])),
+    rows.length > 0 ? rows : "No items",
+    h("div.row", ["Total: " + total.toString()])
   ]);
 }
 
-// Checkout page
-function checkout(): VNode {
-  return h("div.container", ["checkout"]);
+// Payment page
+function payment(): VNode {
+  const f = (ev: MouseEvent) => {
+    projector.replace(root, confirmation);
+  };
+  return h("div.container", [
+    h("div.row", ["Pay with a credit card..."]),
+    h("div.row", [h("div.button", { onclick: f }, ["GO!"])])
+  ]);
+}
+
+// Confirmation
+function confirmation(): VNode {
+  const f = (ev: MouseEvent) => {
+    state.selections = [];
+    projector.replace(root, store);
+  };
+  const rows = state.selections.map(s =>
+    h(
+      "div.row",
+      cols([s.product.caption, s.size as string, s.quantity.toString()])
+    )
+  );
+  return h("div.container", [
+    h("div.row", ["Success!"]),
+    rows,
+    h("div.row", { onclick: f }, ["OK"])
+  ]);
+}
+
+/* HELPERS */
+
+function cols(xs: string[]): VNode[] {
+  return xs.map(x => h("div.col-sm", [x]));
 }
 
 projector.replace(root, welcome);
