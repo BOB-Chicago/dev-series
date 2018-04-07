@@ -9,6 +9,7 @@
 		"noFallthroughCasesInSwitch": true,
 		"noUnusedLocals": true,
 		"outDir": "dist",
+    "sourceMap": true,
 		"strictNullChecks": true,
 		"target": "es5"
 	},
