@@ -17,16 +17,16 @@ const wss = new WebSocket.Server({ port: 8081 });
 wss.on("connection", ws => {
   console.log("CONNECTION");
   const payload = {
-    __type: "Products",
+    __ctor: "Products",
     data: inventory
   };
   ws.send(JSON.stringify(payload));
   ws.on("message", (raw: string) => {
     const msg = JSON.parse(raw) as Message;
-    if (msg.__type === "Order") {
+    if (msg.__ctor === "Order") {
       /* ... process order ... */
       const conf = {
-        __type: "Confirmation"
+        __ctor: "Confirmation"
       } as Confirmation;
       ws.send(JSON.stringify(conf));
     }

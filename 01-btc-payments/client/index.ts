@@ -8,15 +8,61 @@ import { Product, Message, Selection, Size, Order } from "../lib";
 type Page = "welcome" | "store" | "cart" | "payment" | "confirmation";
 
 type State = {
-  products: Product[];
-  selections: Selection[];
+  cart: Map<string, Selection>;
   page: Page;
+  products: Product[];
+  selections: Map<string, Selection>;
 };
 
-const state: State = {
+type EventT =
+  | Load
+  | Goto
+  | CartAdd
+  | SizeClick
+  | QuantityClick
+  | SubmitOrder
+  | ConfirmOk;
+
+interface Load {
+  __ctor: "Load";
+  products: Product[];
+}
+
+interface Goto {
+  __ctor: "Goto";
+  page: Page;
+}
+
+interface CartAdd {
+  __ctor: "CartAdd";
+  product: string;
+}
+
+interface SizeClick {
+  __ctor: "SizeClick";
+  product: string;
+  size: Size;
+}
+
+interface QuantityClick {
+  __ctor: "QuantityClick";
+  product: string;
+  action: "up" | "down";
+}
+
+interface SubmitOrder {
+  __ctor: "SubmitOrder";
+}
+
+interface ConfirmOk {
+  __ctor: "ConfirmOk";
+}
+
+let state: State = {
+  cart: new Map(),
+  page: "welcome",
   products: [],
-  selections: [],
-  page: "welcome"
+  selections: new Map()
 };
 
 /* WEBSOCKET */
@@ -26,33 +72,68 @@ const projector: Projector = createProjector();
 
 ws.addEventListener("message", (e: MessageEvent) => {
   const msg = JSON.parse(e.data) as Message;
-  switch (msg.__type) {
+  switch (msg.__ctor) {
     case "Products": {
-      state.products = msg.data;
-      state.page = "store";
+      event({
+        __ctor: "Load",
+        products: msg.data
+      });
       break;
     }
     case "Confirmation": {
-      state.page = "confirmation";
+      event({
+        __ctor: "Goto",
+        page: "confirmation"
+      });
     }
   }
   projector.scheduleRender();
 });
 
-/* CONTINUATIONS */
+/* STEPPER */
 
-function addToCart(sel: Selection): (ev: MouseEvent) => void {
-  const f = (ev: MouseEvent) => {
-    console.log("ADD TO CART");
-    for (let s of state.selections) {
-      if (s.product.id === sel.product.id && s.size === sel.size) {
-        s.quantity += sel.quantity;
-        return;
-      }
+function step(ev: EventT, s0: State): State {
+  switch (ev.__ctor) {
+    case "Goto": {
+      s0.page = ev.page;
+      return s0;
     }
-    state.selections.push(sel);
-  };
-  return f;
+    case "Load": {
+      s0.products = ev.products;
+      s0.page = "store";
+      return s0;
+    }
+    case "CartAdd": {
+      return s0;
+    }
+    case "QuantityClick": {
+      return s0;
+    }
+    case "SizeClick": {
+      return s0;
+    }
+    case "SubmitOrder": {
+      const ss = [] as Selection[];
+      s0.cart.forEach(s => ss.push(s));
+      const order = {
+        __ctor: "Order",
+        data: ss
+      } as Order;
+      ws.send(JSON.stringify(order));
+      return s0;
+    }
+    case "ConfirmOk": {
+      s0.page = "store";
+      s0.cart = new Map();
+      s0.selections = new Map();
+      return s0;
+    }
+  }
+}
+
+function event(ev: EventT): void {
+  state = step(ev, state);
+  projector.scheduleRender();
 }
 
 /* VIEWS */
@@ -89,12 +170,16 @@ function welcome(): VNode {
 // T-shirt store
 function store(): VNode {
   const toCart = (ev: MouseEvent) => {
-    state.page = "cart";
-    projector.scheduleRender();
+    event({
+      __ctor: "Goto",
+      page: "cart"
+    });
   };
   const toPayment = (ev: MouseEvent) => {
-    state.page = "payment";
-    projector.scheduleRender();
+    event({
+      __ctor: "Goto",
+      page: "payment"
+    });
   };
   return h("div.container", [
     h("div.row", { key: 1 }, [h("h1", ["Bitcoin & Open Blockchain Store"])]),
@@ -107,35 +192,42 @@ function store(): VNode {
 }
 
 function renderProduct(p: Product): VNode {
-  const sel: Selection = {
-    product: p,
-    quantity: 0,
-    size: null
+  const f = (ev: MouseEvent) => {
+    event({
+      __ctor: "CartAdd",
+      product: p.id
+    });
   };
   return h("div.container", { key: p.id }, [
     h("div.row", { key: 1 }, [p.caption]), // caption
     h("div.row", { key: 2 }, [h("img", { src: `assets/${p.id}.png` })]), // image
-    sizes(sel), // sizes
-    quantity(sel), // quantity
-    h("div.row", { key: 5, onclick: addToCart(sel) }, ["Add to cart"])
+    sizes(p.id), // sizes
+    quantity(p.id), // quantity
+    h("div.row", { key: 5, onclick: f }, ["Add to cart"])
   ]);
 }
 
 // Simple size selector
-function sizes(sel: Selection): VNode {
+function sizes(pid: string): VNode {
   function f(s: Size): (e: MouseEvent) => void {
     return e => {
-      sel.size = s;
-      projector.scheduleRender();
+      event({
+        __ctor: "SizeClick",
+        product: pid,
+        size: s
+      });
     };
   }
   return h(
     "div.row",
     { key: 3 },
     (["S", "M", "L"] as Size[]).map(s => {
+      const isSelected =
+        state.selections.has(pid) &&
+        (state.selections.get(pid) as Selection).size === s;
       return h(
         "div.col-sm.button",
-        { key: s, onclick: f(s), classes: { selected: s == sel.size } },
+        { key: s, onclick: f(s), classes: { selected: isSelected } },
         [s]
       );
     })
@@ -143,50 +235,69 @@ function sizes(sel: Selection): VNode {
 }
 
 // Simple quantity updater: "(-) q (+)"
-function quantity(sel: Selection): VNode {
+function quantity(pid: string): VNode {
   const up = (ev: MouseEvent) => {
-    sel.quantity++;
+    event({
+      __ctor: "QuantityClick",
+      product: pid,
+      action: "up"
+    });
   };
   const down = (ev: MouseEvent) => {
-    sel.quantity = Math.max(0, sel.quantity - 1);
+    event({
+      __ctor: "QuantityClick",
+      product: pid,
+      action: "down"
+    });
   };
+  const q = state.selections.has(pid)
+    ? (state.selections.get(pid) as Selection).quantity
+    : 0;
   return h("div.row", { key: 4 }, [
     h("div.col-sm", { key: 1, onclick: down }, ["(-)"]),
-    h("div.col-sm", { key: 2 }, [sel.quantity.toString()]),
+    h("div.col-sm", { key: 2 }, [q.toString()]),
     h("div.col-sm", { key: 3, onclick: up }, ["(+)"])
   ]);
 }
 
 // Shopping cart
 function cart(): VNode {
+  const f = (ev: MouseEvent) => {
+    event({
+      __ctor: "Goto",
+      page: "store"
+    });
+  };
   let total = 0;
-  const rows = state.selections.map(s => {
+  const rows = [] as VNode[];
+  state.selections.forEach(s => {
     total += s.quantity * s.product.price;
-    return h("div.row", { key: s.product.id }, [
-      cols([
-        s.product.caption,
-        s.size as string,
-        s.quantity.toString(),
-        (s.quantity * s.product.price).toString()
+    rows.push(
+      h("div.row", { key: s.product.id }, [
+        cols([
+          s.product.caption,
+          s.size as string,
+          s.quantity.toString(),
+          (s.quantity * s.product.price).toString()
+        ])
       ])
-    ]);
+    );
   });
   return h("div.container", [
     h("div.row", { key: 1 }, ["Shopping cart"]),
     h("div.row", { key: 2 }, cols(["Desc", "Size", "Quantity", "Price"])),
     rows.length > 0 ? rows : "No items",
-    h("div.row", { key: 3 }, ["Total: " + total.toString()])
+    h("div.row", { key: 3 }, ["Total: " + total.toString()]),
+    h("div.row", { key: 4, onclick: f }, ["Continue shopping"])
   ]);
 }
 
 // Payment page
 function payment(): VNode {
   const f = (ev: MouseEvent) => {
-    const order = {
-      __type: "Order",
-      data: state.selections
-    } as Order;
-    ws.send(JSON.stringify(order));
+    event({
+      __ctor: "SubmitOrder"
+    });
   };
   return h("div.container", [
     h("div.row", { key: 1 }, ["Pay with a credit card..."]),
@@ -197,15 +308,18 @@ function payment(): VNode {
 // Confirmation
 function confirmation(): VNode {
   const f = (ev: MouseEvent) => {
-    state.selections = [];
-    state.page = "store";
-    projector.scheduleRender();
+    event({
+      __ctor: "ConfirmOk"
+    });
   };
-  const rows = state.selections.map(s =>
-    h(
-      "div.row",
-      { key: s.product.id },
-      cols([s.product.caption, s.size as string, s.quantity.toString()])
+  const rows = [] as VNode[];
+  state.selections.forEach(s =>
+    rows.push(
+      h(
+        "div.row",
+        { key: s.product.id },
+        cols([s.product.caption, s.size as string, s.quantity.toString()])
+      )
     )
   );
   return h("div.container", [

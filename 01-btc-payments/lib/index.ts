@@ -11,7 +11,7 @@ export interface Selection {
 export type Message = Products | Order | Confirmation;
 
 export interface Products {
-  __type: "Products";
+  __ctor: "Products";
   data: Product[];
 }
 
@@ -22,10 +22,10 @@ export interface Product {
 }
 
 export interface Order {
-  __type: "Order";
+  __ctor: "Order";
   data: Selection[];
 }
 
 export interface Confirmation {
-  __type: "Confirmation";
+  __ctor: "Confirmation";
 }
