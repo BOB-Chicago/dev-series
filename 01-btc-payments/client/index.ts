@@ -2,11 +2,11 @@
 
 import { Projector, VNode, createProjector, h } from "maquette";
 import { Product, Message, Selection, Size, Order } from "../lib";
-import { EventT, State } from "./Model";
+import { EventT, Page, State } from "./Model";
 
 /* INIT */
 
-let state: State = {
+const state: State = {
   cart: new Map(),
   page: "welcome",
   products: new Map(),
@@ -40,18 +40,18 @@ ws.addEventListener("message", (e: MessageEvent) => {
 
 /* STEPPER */
 
-function step(ev: EventT, s0: State): State {
+function step(ev: EventT, s0: State): void {
   switch (ev.__ctor) {
     case "Goto": {
       console.log("GOTO", ev.page);
       s0.page = ev.page;
-      return s0;
+      return;
     }
     case "Load": {
       console.log("LOAD");
       s0.products = ev.products;
       s0.page = "store";
-      return s0;
+      return;
     }
     case "CartAdd": {
       console.log("CARTADD");
@@ -67,7 +67,7 @@ function step(ev: EventT, s0: State): State {
         });
       }
       s0.selections.delete(ev.product);
-      return s0;
+      return;
     }
     case "QuantityClick": {
       console.log("QUANTITYCLICK");
@@ -83,7 +83,7 @@ function step(ev: EventT, s0: State): State {
           }
         }
       }
-      return s0;
+      return;
     }
     case "SizeClick": {
       console.log("SIZECLICK");
@@ -96,7 +96,7 @@ function step(ev: EventT, s0: State): State {
       } else {
         (s0.selections.get(ev.product) as Selection).size = ev.size;
       }
-      return s0;
+      return;
     }
     case "SubmitOrder": {
       console.log("SUBMITORDER");
@@ -107,28 +107,26 @@ function step(ev: EventT, s0: State): State {
         data: ss
       } as Order;
       ws.send(JSON.stringify(order));
-      return s0;
+      return;
     }
     case "ConfirmOk": {
       console.log("CONFIRMOK");
       s0.page = "store";
       s0.cart = new Map();
       s0.selections = new Map();
-      return s0;
+      return;
     }
   }
 }
 
 function event(ev: EventT): void {
-  state = step(ev, state);
+  step(ev, state);
   projector.scheduleRender();
 }
 
 /* VIEWS */
 
 function render(): VNode {
-  console.log("RENDERING!");
-  console.log(state);
   switch (state.page) {
     case "welcome": {
       return welcome();
@@ -157,18 +155,6 @@ function welcome(): VNode {
 
 // T-shirt store
 function store(): VNode {
-  const toCart = (ev: MouseEvent) => {
-    event({
-      __ctor: "Goto",
-      page: "cart"
-    });
-  };
-  const toPayment = (ev: MouseEvent) => {
-    event({
-      __ctor: "Goto",
-      page: "payment"
-    });
-  };
   const ps = [] as VNode[];
   state.products.forEach(p => {
     ps.push(renderProduct(p));
@@ -176,8 +162,8 @@ function store(): VNode {
   return h("div.container", [
     h("div.row", { key: 1 }, [h("h1", ["Bitcoin & Open Blockchain Store"])]),
     h("div.row", { key: 2 }, [
-      h("div.col", { key: 1, onclick: toCart }, ["view cart"]),
-      h("div.col", { key: 2, onclick: toPayment }, ["checkout"])
+      h("div.col", { key: 1, onclick: gotoPage("cart") }, ["view cart"]),
+      h("div.col", { key: 2, onclick: gotoPage("payment") }, ["checkout"])
     ]),
     h("div.row", { key: 3 }, ps)
   ]);
@@ -258,12 +244,6 @@ function quantity(pid: string): VNode {
 
 // Shopping cart
 function cart(): VNode {
-  const f = (ev: MouseEvent) => {
-    event({
-      __ctor: "Goto",
-      page: "store"
-    });
-  };
   let total = 0;
   const rows = [] as VNode[];
   state.cart.forEach(s => {
@@ -284,7 +264,8 @@ function cart(): VNode {
     h("div.row", { key: 2 }, cols(["Desc", "Size", "Quantity", "Price"])),
     rows.length > 0 ? rows : "No items",
     h("div.row", { key: 3 }, ["Total: $" + dollars(total).toString()]),
-    h("div.row", { key: 4, onclick: f }, ["Continue shopping"])
+    h("div.row", { key: 4, onclick: gotoPage("store") }, ["Continue shopping"]),
+    h("div.row", { key: 5, onclick: gotoPage("payment") }, ["Checkout"])
   ]);
 }
 
@@ -321,7 +302,7 @@ function confirmation(): VNode {
   return h("div.container", [
     h("div.row", { key: 1 }, ["Success!"]),
     rows,
-    h("div.row", { key: 2, onclick: f }, ["OK"])
+    h("div.row", { key: 2 }, [h("div.button", { onclick: f }, ["OK"])])
   ]);
 }
 
@@ -333,6 +314,15 @@ function cols(xs: string[]): VNode[] {
 
 function dollars(cs: number): number {
   return cs / 100;
+}
+function gotoPage(p: Page): (ev: MouseEvent) => void {
+  const f = (ev: MouseEvent) => {
+    event({
+      __ctor: "Goto",
+      page: p
+    });
+  };
+  return f;
 }
 
 function selectionComplete(pid: string): boolean {

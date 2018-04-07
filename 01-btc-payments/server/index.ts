@@ -25,6 +25,7 @@ wss.on("connection", ws => {
     const msg = JSON.parse(raw) as Message;
     if (msg.__ctor === "Order") {
       /* ... process order ... */
+      console.log(msg.data);
       const conf = {
         __ctor: "Confirmation"
       } as Confirmation;
