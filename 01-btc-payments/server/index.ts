@@ -1,5 +1,5 @@
 import * as WebSocket from "ws";
-import { Product } from "../lib";
+import { Product, Message, Confirmation } from "../lib";
 import { readFileSync } from "fs";
 
 if (process.env.INVENTORYDATA === undefined) {
@@ -15,8 +15,20 @@ const wss = new WebSocket.Server({ port: 8081 });
 /* WEBSOCKET SERVER */
 
 wss.on("connection", ws => {
-  ws.send({
+  console.log("CONNECTION");
+  const payload = {
     __type: "Products",
     data: inventory
+  };
+  ws.send(JSON.stringify(payload));
+  ws.on("message", (raw: string) => {
+    const msg = JSON.parse(raw) as Message;
+    if (msg.__type === "Order") {
+      /* ... process order ... */
+      const conf = {
+        __type: "Confirmation"
+      } as Confirmation;
+      ws.send(JSON.stringify(conf));
+    }
   });
 });
