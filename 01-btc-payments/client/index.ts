@@ -2,61 +2,9 @@
 
 import { Projector, VNode, createProjector, h } from "maquette";
 import { Product, Message, Selection, Size, Order } from "../lib";
+import { EventT, State } from "./Model";
 
-/* DATA */
-
-type Page = "welcome" | "store" | "cart" | "payment" | "confirmation";
-
-type State = {
-  cart: Map<string, Selection>;
-  page: Page;
-  products: Map<string, Product>;
-  selections: Map<string, Selection>;
-};
-
-type EventT =
-  | Load
-  | Goto
-  | CartAdd
-  | SizeClick
-  | QuantityClick
-  | SubmitOrder
-  | ConfirmOk;
-
-interface Load {
-  __ctor: "Load";
-  products: Map<string, Product>;
-}
-
-interface Goto {
-  __ctor: "Goto";
-  page: Page;
-}
-
-interface CartAdd {
-  __ctor: "CartAdd";
-  product: string;
-}
-
-interface SizeClick {
-  __ctor: "SizeClick";
-  product: string;
-  size: Size;
-}
-
-interface QuantityClick {
-  __ctor: "QuantityClick";
-  product: string;
-  action: "up" | "down";
-}
-
-interface SubmitOrder {
-  __ctor: "SubmitOrder";
-}
-
-interface ConfirmOk {
-  __ctor: "ConfirmOk";
-}
+/* INIT */
 
 let state: State = {
   cart: new Map(),
@@ -395,4 +343,5 @@ function selectionComplete(pid: string): boolean {
   return false;
 }
 
+// GO!
 projector.append(document.body, render);
