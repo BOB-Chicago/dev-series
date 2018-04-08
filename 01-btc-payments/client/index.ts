@@ -60,11 +60,7 @@ function step(ev: EventT, s0: State): void {
       if (s0.cart.has(cartKey)) {
         (s0.cart.get(cartKey) as Selection).quantity += sel.quantity;
       } else {
-        s0.cart.set(cartKey, {
-          product: sel.product,
-          quantity: sel.quantity,
-          size: sel.size
-        });
+        s0.cart.set(cartKey, { ...sel });
       }
       s0.selections.delete(ev.product);
       return;
