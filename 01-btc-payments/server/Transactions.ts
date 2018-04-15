@@ -6,8 +6,14 @@ const bitcoindSocket = "ipc:///tmp/bitcoind";
 
 /* TRANSACTION MONITOR */
 
+/**
+ * We expose an EventEmitter which emits "btctx" events containing simplified
+ * transaction data.
+ */
 export const txMonitor = new EventEmitter();
 
+// bitcoind uses ZeroMQ to broadcast messages about bitcoin blocks and
+// transactions to other programs running on the same system.
 const sock = socket("sub");
 sock.connect(bitcoindSocket);
 sock.subscribe("rawtx");
