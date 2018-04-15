@@ -1,35 +1,107 @@
 import * as WebSocket from "ws";
-import { Product, Message, Confirmation } from "../lib";
-import { readFileSync } from "fs";
+import {
+  PaymentMethod,
+  Product,
+  Message,
+  Confirmation,
+  Selection,
+  sizeIndex
+} from "../lib";
+import { Database } from "sqlite3";
+import * as uuid from "uuid/v4";
 
-if (process.env.INVENTORYDATA === undefined) {
-  console.log("INVENTORYDATA must be set");
+if (process.env.DATABASE === undefined) {
+  process.stderr.write("DATABASE environment variable must be set");
   process.exit(1);
 }
 
-const raw: string = readFileSync(<string>process.env.INVENTORYDATA, "utf8");
-const inventory = JSON.parse(raw) as Product[];
+/* LOAD CATALOG */
 
-const wss = new WebSocket.Server({ port: 8081 });
+const dbFile = process.env.DATABASE as string;
+const db = new Database(dbFile);
+
+const catalogSql = "SELECT * FROM catalog";
+db.all(catalogSql, startServerWith);
 
 /* WEBSOCKET SERVER */
 
-wss.on("connection", ws => {
-  console.log("CONNECTION");
-  const payload = {
-    __ctor: "Products",
-    data: inventory
-  };
-  ws.send(JSON.stringify(payload));
-  ws.on("message", (raw: string) => {
-    const msg = JSON.parse(raw) as Message;
-    if (msg.__ctor === "Order") {
-      /* ... process order ... */
-      console.log(msg.data);
-      const conf = {
-        __ctor: "Confirmation"
-      } as Confirmation;
-      ws.send(JSON.stringify(conf));
-    }
+function startServerWith(err: Error, catalog: Product[]): void {
+  // We won't recover from a failure to retrieve the catalog
+  if (err !== undefined) {
+    process.stderr.write(err.toString());
+    process.exit(1);
+  }
+  const wss = new WebSocket.Server({ port: 8081 });
+  wss.on("connection", ws => {
+    console.log("CONNECTION");
+    const payload = {
+      __ctor: "Products",
+      data: catalog
+    };
+    ws.send(JSON.stringify(payload));
+    ws.on("message", async (raw: string) => {
+      const msg = JSON.parse(raw) as Message;
+      if (msg.__ctor === "Order") {
+        /* ... process order ... */
+        const id = await persist(msg.selections, msg.streetAddress);
+        const conf = {
+          __ctor: "Confirmation",
+          orderId: id
+        } as Confirmation;
+        ws.send(JSON.stringify(conf));
+      }
+    });
   });
-});
+}
+
+/* PERSISTENCE */
+
+enum Status {
+  Received,
+  Paid,
+  Processing,
+  Shipped
+}
+
+function persist(sels: Selection[], address: string): Promise<string> {
+  const orderId = uuid();
+  const orderSql = `INSERT INTO orders VALUES (${orderId}, ${timestamp()}, ${
+    PaymentMethod.Credit
+  }, ${Status.Paid}, $address)`;
+  const order = new Promise((resolve, reject) =>
+    db.run(orderSql, { $address: address }, (err: Error) => {
+      if (err !== null) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    })
+  );
+  const items = sels.map(
+    s =>
+      new Promise((resolve, reject) =>
+        db.run(
+          `INSERT INTO purchases VALUES ($orderId, $itemId, $size, $quantity)`,
+          {
+            $orderId: orderId,
+            $itemId: s.product.id,
+            $size: sizeIndex(s.size),
+            $quantity: s.quantity
+          },
+          (err: Error) => {
+            if (err === null) {
+              resolve();
+            } else {
+              reject(err);
+            }
+          }
+        )
+      )
+  );
+  return Promise.all([order, ...items]).then(() => orderId);
+}
+
+function timestamp(): number {
+  let ms = Date.now();
+  return Math.floor(ms / 1000);
+}
