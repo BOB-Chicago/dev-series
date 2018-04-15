@@ -1,5 +1,11 @@
 import * as WebSocket from "ws";
-import { Product, Message, Confirmation } from "../lib";
+import {
+  Product,
+  Message,
+  Confirmation,
+  PaymentDetails,
+  Selection
+} from "../lib";
 import { readFileSync } from "fs";
 
 if (process.env.INVENTORYDATA === undefined) {
@@ -24,12 +30,39 @@ wss.on("connection", ws => {
   ws.on("message", (raw: string) => {
     const msg = JSON.parse(raw) as Message;
     if (msg.__ctor === "Order") {
-      /* ... process order ... */
-      console.log(msg.data);
-      const conf = {
-        __ctor: "Confirmation"
-      } as Confirmation;
-      ws.send(JSON.stringify(conf));
+      switch (msg.paymentMethod) {
+        case "credit": {
+          /* ... process order ... */
+          console.log(msg.data);
+          const conf = {
+            __ctor: "Confirmation"
+          } as Confirmation;
+          ws.send(JSON.stringify(conf));
+          break;
+        }
+        case "bitcoin": {
+          // generate address
+          // compute the BTC price
+          const details = {
+            __ctor: "PaymentDetails",
+            address: "XXXXX",
+            amount: toBtc(total(msg.data))
+          } as PaymentDetails;
+          ws.send(JSON.stringify(details));
+        }
+      }
     }
   });
 });
+
+function total(ss: Selection[]): number {
+  const step = (t: number, s: Selection) => {
+    const i = inventory.findIndex(p => p.id === s.product.id);
+    return i >= 0 ? t + s.quantity * inventory[i].price : t;
+  };
+  return ss.reduce(step, 0);
+}
+
+function toBtc(cents: number): number {
+  return cents / 100 / 7500;
+}
