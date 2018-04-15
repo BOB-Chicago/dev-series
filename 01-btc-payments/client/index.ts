@@ -9,6 +9,7 @@ import { EventT, Page, State } from "./Model";
 const state: State = {
   cart: new Map(),
   page: "welcome",
+  paymentAddress: null,
   products: new Map(),
   selections: new Map()
 };
@@ -21,6 +22,13 @@ const projector: Projector = createProjector();
 ws.addEventListener("message", (e: MessageEvent) => {
   const msg = JSON.parse(e.data) as Message;
   switch (msg.__ctor) {
+    case "PaymentAddress": {
+      event({
+        __ctor: "PaymentAddress",
+        address: msg.address
+      });
+      break;
+    }
     case "Products": {
       event({
         __ctor: "Load",
@@ -42,17 +50,6 @@ ws.addEventListener("message", (e: MessageEvent) => {
 
 function step(ev: EventT, s0: State): void {
   switch (ev.__ctor) {
-    case "Goto": {
-      console.log("GOTO", ev.page);
-      s0.page = ev.page;
-      return;
-    }
-    case "Load": {
-      console.log("LOAD");
-      s0.products = ev.products;
-      s0.page = "store";
-      return;
-    }
     case "CartAdd": {
       console.log("CARTADD");
       const sel = s0.selections.get(ev.product) as Selection;
@@ -63,6 +60,24 @@ function step(ev: EventT, s0: State): void {
         s0.cart.set(cartKey, { ...sel });
       }
       s0.selections.delete(ev.product);
+      return;
+    }
+    case "ConfirmOk": {
+      console.log("CONFIRMOK");
+      s0.page = "store";
+      s0.cart = new Map();
+      s0.selections = new Map();
+      return;
+    }
+    case "Goto": {
+      console.log("GOTO", ev.page);
+      s0.page = ev.page;
+      return;
+    }
+    case "Load": {
+      console.log("LOAD");
+      s0.products = ev.products;
+      s0.page = "store";
       return;
     }
     case "QuantityClick": {
@@ -80,6 +95,12 @@ function step(ev: EventT, s0: State): void {
         }
       }
       return;
+    }
+    case "PaymentAddress": {
+      console.log("PAYMENTADDRESS");
+      s0.page = "btcPayment";
+      s0.paymentAddress = ev.address;
+      break;
     }
     case "SizeClick": {
       console.log("SIZECLICK");
@@ -103,13 +124,6 @@ function step(ev: EventT, s0: State): void {
         data: ss
       } as Order;
       ws.send(JSON.stringify(order));
-      return;
-    }
-    case "ConfirmOk": {
-      console.log("CONFIRMOK");
-      s0.page = "store";
-      s0.cart = new Map();
-      s0.selections = new Map();
       return;
     }
   }

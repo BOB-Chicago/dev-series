@@ -1,31 +1,33 @@
 import { Product, Selection, Size } from "../lib";
 
-export type Page = "welcome" | "store" | "cart" | "payment" | "confirmation";
+export type Page =
+  | "btcPayment"
+  | "cart"
+  | "confirmation"
+  | "payment"
+  | "store"
+  | "welcome";
 
 export type State = {
   cart: Map<string, Selection>;
   page: Page;
+  paymentAddress: string | null;
   products: Map<string, Product>;
   selections: Map<string, Selection>;
 };
 
 export type EventT =
-  | Load
-  | Goto
   | CartAdd
-  | SizeClick
+  | ConfirmOk
+  | Goto
+  | Load
+  | PaymentAddress
   | QuantityClick
-  | SubmitOrder
-  | ConfirmOk;
+  | SizeClick
+  | SubmitOrder;
 
-export interface Load {
-  __ctor: "Load";
-  products: Map<string, Product>;
-}
-
-export interface Goto {
-  __ctor: "Goto";
-  page: Page;
+export interface ConfirmOk {
+  __ctor: "ConfirmOk";
 }
 
 export interface CartAdd {
@@ -33,10 +35,19 @@ export interface CartAdd {
   product: string;
 }
 
-export interface SizeClick {
-  __ctor: "SizeClick";
-  product: string;
-  size: Size;
+export interface Goto {
+  __ctor: "Goto";
+  page: Page;
+}
+
+export interface Load {
+  __ctor: "Load";
+  products: Map<string, Product>;
+}
+
+export interface PaymentAddress {
+  __ctor: "PaymentAddress";
+  address: string;
 }
 
 export interface QuantityClick {
@@ -45,10 +56,12 @@ export interface QuantityClick {
   action: "up" | "down";
 }
 
-export interface SubmitOrder {
-  __ctor: "SubmitOrder";
+export interface SizeClick {
+  __ctor: "SizeClick";
+  product: string;
+  size: Size;
 }
 
-export interface ConfirmOk {
-  __ctor: "ConfirmOk";
+export interface SubmitOrder {
+  __ctor: "SubmitOrder";
 }

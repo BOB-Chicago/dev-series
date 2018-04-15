@@ -8,7 +8,17 @@ export interface Selection {
   size: Size;
 }
 
-export type Message = Products | Order | Confirmation;
+export type Message = Confirmation | Order | PaymentAddress | Products;
+
+export interface Confirmation {
+  __ctor: "Confirmation";
+  orderId: string;
+}
+
+export interface PaymentAddress {
+  __ctor: "PaymentAddress";
+  address: string;
+}
 
 export interface Products {
   __ctor: "Products";
@@ -24,8 +34,5 @@ export interface Product {
 export interface Order {
   __ctor: "Order";
   data: Selection[];
-}
-
-export interface Confirmation {
-  __ctor: "Confirmation";
+  paymentMethod: "bitcoin" | "credit";
 }
