@@ -5,6 +5,9 @@ export type Page = "welcome" | "store" | "cart" | "payment" | "confirmation";
 export type State = {
   cart: Map<string, Selection>;
   page: Page;
+  payment?: {
+    streetAddress: string;
+  };
   products: Map<string, Product>;
   selections: Map<string, Selection>;
 };
@@ -16,7 +19,8 @@ export type EventT =
   | SizeClick
   | QuantityClick
   | SubmitOrder
-  | ConfirmOk;
+  | ConfirmOk
+  | UserDetails;
 
 export interface Load {
   __ctor: "Load";
@@ -51,4 +55,9 @@ export interface SubmitOrder {
 
 export interface ConfirmOk {
   __ctor: "ConfirmOk";
+}
+
+export interface UserDetails {
+  __ctor: "UserDetails";
+  streetAddress: string;
 }

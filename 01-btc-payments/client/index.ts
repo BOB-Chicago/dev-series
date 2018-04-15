@@ -81,6 +81,13 @@ function step(ev: EventT, s0: State): void {
       }
       return;
     }
+    case "UserDetails": {
+      console.log("USERDETAILS");
+      s0.payment = {
+        streetAddress: ev.streetAddress
+      };
+      break;
+    }
     case "SizeClick": {
       console.log("SIZECLICK");
       if (!s0.selections.has(ev.product)) {
@@ -100,7 +107,8 @@ function step(ev: EventT, s0: State): void {
       s0.cart.forEach(s => ss.push(s));
       const order = {
         __ctor: "Order",
-        data: ss
+        selections: ss,
+        streetAddress: (s0.payment as { streetAddress: string }).streetAddress
       } as Order;
       ws.send(JSON.stringify(order));
       return;
@@ -280,9 +288,18 @@ function payment(): VNode {
       __ctor: "SubmitOrder"
     });
   };
+  const g = (ev: Event) => {
+    event({
+      __ctor: "UserDetails",
+      streetAddress: (ev.target as any).value
+    });
+  };
   return h("div.container", [
     h("div.row", { key: 1 }, ["Pay with a credit card..."]),
-    h("div.row", { key: 2 }, [h("div.button", { onclick: f }, ["GO!"])])
+    h("div.row", { key: 2 }, [
+      h("input", { oninput: g, default: "Street address" }, [])
+    ]),
+    h("div.row", { key: 3 }, [h("div.button", { onclick: f }, ["GO!"])])
   ]);
 }
 

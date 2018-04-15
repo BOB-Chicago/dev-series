@@ -27,7 +27,7 @@ db.all(catalogSql, startServerWith);
 
 function startServerWith(err: Error, catalog: Product[]): void {
   // We won't recover from a failure to retrieve the catalog
-  if (err !== undefined) {
+  if (err !== null) {
     process.stderr.write(err.toString());
     process.exit(1);
   }
@@ -65,17 +65,26 @@ enum Status {
 
 function persist(sels: Selection[], address: string): Promise<string> {
   const orderId = uuid();
-  const orderSql = `INSERT INTO orders VALUES (${orderId}, ${timestamp()}, ${
-    PaymentMethod.Credit
-  }, ${Status.Paid}, $address)`;
+  const orderSql =
+    "INSERT INTO orders VALUES ($orderId, $timestamp, $method, $status, $address)";
   const order = new Promise((resolve, reject) =>
-    db.run(orderSql, { $address: address }, (err: Error) => {
-      if (err !== null) {
-        reject(err);
-      } else {
-        resolve();
+    db.run(
+      orderSql,
+      {
+        $address: address,
+        $orderId: orderId,
+        $timestamp: timestamp(),
+        $method: PaymentMethod.Credit,
+        $status: Status.Paid
+      },
+      (err: Error) => {
+        if (err !== null) {
+          reject(err);
+        } else {
+          resolve();
+        }
       }
-    })
+    )
   );
   const items = sels.map(
     s =>
