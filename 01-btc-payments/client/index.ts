@@ -30,8 +30,8 @@ ws.addEventListener("message", (e: MessageEvent) => {
     }
     case "Confirmation": {
       event({
-        __ctor: "Goto",
-        page: "confirmation"
+        __ctor: "GotOrderId",
+        orderId: msg.orderId
       });
     }
   }
@@ -45,6 +45,12 @@ function step(ev: EventT, s0: State): void {
     case "Goto": {
       console.log("GOTO", ev.page);
       s0.page = ev.page;
+      return;
+    }
+    case "GotOrderId": {
+      console.log("GOTORDERID");
+      s0.orderId = ev.orderId;
+      s0.page = "confirmation";
       return;
     }
     case "Load": {
@@ -322,8 +328,9 @@ function confirmation(): VNode {
   );
   return h("div.container", [
     h("div.row", { key: 1 }, ["Success!"]),
+    h("div.row", { key: 2 }, [`Your order id is ${state.orderId}`]),
     rows,
-    h("div.row", { key: 2 }, [h("div.button", { onclick: f }, ["OK"])])
+    h("div.row", { key: 3 }, [h("div.button", { onclick: f }, ["OK"])])
   ]);
 }
 

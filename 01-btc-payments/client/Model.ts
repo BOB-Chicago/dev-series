@@ -4,6 +4,7 @@ export type Page = "welcome" | "store" | "cart" | "payment" | "confirmation";
 
 export type State = {
   cart: Map<string, Selection>;
+  orderId?: string;
   page: Page;
   payment?: {
     streetAddress: string;
@@ -15,6 +16,7 @@ export type State = {
 export type EventT =
   | Load
   | Goto
+  | GotOrderId
   | CartAdd
   | SizeClick
   | QuantityClick
@@ -30,6 +32,11 @@ export interface Load {
 export interface Goto {
   __ctor: "Goto";
   page: Page;
+}
+
+export interface GotOrderId {
+  __ctor: "GotOrderId";
+  orderId: string;
 }
 
 export interface CartAdd {
