@@ -1,4 +1,5 @@
 import * as WebSocket from "ws";
+import { BigNumber } from "bignumber.js";
 import {
   Product,
   Message,
@@ -6,6 +7,7 @@ import {
   PaymentDetails,
   Selection
 } from "../lib";
+import { spotPrice } from "./Util";
 import { readFileSync } from "fs";
 
 if (process.env.INVENTORYDATA === undefined) {
@@ -27,7 +29,7 @@ wss.on("connection", ws => {
     data: inventory
   };
   ws.send(JSON.stringify(payload));
-  ws.on("message", (raw: string) => {
+  ws.on("message", async (raw: string) => {
     const msg = JSON.parse(raw) as Message;
     if (msg.__ctor === "Order") {
       switch (msg.paymentMethod) {
@@ -42,11 +44,18 @@ wss.on("connection", ws => {
         }
         case "bitcoin": {
           // generate address
+          const address = "XXXXX";
           // compute the BTC price
+          const spot = await spotPrice();
+          const totalCents = new BigNumber(total(msg.data));
+          const btcAmount = totalCents
+            .dividedBy(100)
+            .dividedBy(spot)
+            .decimalPlaces(8);
           const details = {
             __ctor: "PaymentDetails",
-            address: "XXXXX",
-            amount: toBtc(total(msg.data))
+            address,
+            amount: btcAmount.toNumber()
           } as PaymentDetails;
           ws.send(JSON.stringify(details));
         }
@@ -61,8 +70,4 @@ function total(ss: Selection[]): number {
     return i >= 0 ? t + s.quantity * inventory[i].price : t;
   };
   return ss.reduce(step, 0);
-}
-
-function toBtc(cents: number): number {
-  return cents / 100 / 7500;
 }
