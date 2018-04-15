@@ -8,16 +8,17 @@ export interface Selection {
   size: Size;
 }
 
-export type Message = Confirmation | Order | PaymentAddress | Products;
+export type Message = Confirmation | Order | PaymentDetails | Products;
 
 export interface Confirmation {
   __ctor: "Confirmation";
   orderId: string;
 }
 
-export interface PaymentAddress {
-  __ctor: "PaymentAddress";
+export interface PaymentDetails {
+  __ctor: "PaymentDetails";
   address: string;
+  amount: number;
 }
 
 export interface Products {

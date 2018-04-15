@@ -11,7 +11,7 @@ export type Page =
 export type State = {
   cart: Map<string, Selection>;
   page: Page;
-  paymentAddress: string | null;
+  payment: null | { address: string; amount: number };
   products: Map<string, Product>;
   selections: Map<string, Selection>;
 };
@@ -21,7 +21,7 @@ export type EventT =
   | ConfirmOk
   | Goto
   | Load
-  | PaymentAddress
+  | PaymentDetails
   | QuantityClick
   | SizeClick
   | SubmitOrder;
@@ -45,9 +45,10 @@ export interface Load {
   products: Map<string, Product>;
 }
 
-export interface PaymentAddress {
-  __ctor: "PaymentAddress";
+export interface PaymentDetails {
+  __ctor: "PaymentDetails";
   address: string;
+  amount: number;
 }
 
 export interface QuantityClick {
@@ -64,4 +65,5 @@ export interface SizeClick {
 
 export interface SubmitOrder {
   __ctor: "SubmitOrder";
+  btc: boolean;
 }

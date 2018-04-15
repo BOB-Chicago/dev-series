@@ -9,7 +9,7 @@ import { EventT, Page, State } from "./Model";
 const state: State = {
   cart: new Map(),
   page: "welcome",
-  paymentAddress: null,
+  payment: null,
   products: new Map(),
   selections: new Map()
 };
@@ -22,10 +22,11 @@ const projector: Projector = createProjector();
 ws.addEventListener("message", (e: MessageEvent) => {
   const msg = JSON.parse(e.data) as Message;
   switch (msg.__ctor) {
-    case "PaymentAddress": {
+    case "PaymentDetails": {
       event({
-        __ctor: "PaymentAddress",
-        address: msg.address
+        __ctor: "PaymentDetails",
+        address: msg.address,
+        amount: msg.amount
       });
       break;
     }
@@ -96,10 +97,13 @@ function step(ev: EventT, s0: State): void {
       }
       return;
     }
-    case "PaymentAddress": {
-      console.log("PAYMENTADDRESS");
+    case "PaymentDetails": {
+      console.log("PAYMENTDETAILS");
       s0.page = "btcPayment";
-      s0.paymentAddress = ev.address;
+      s0.payment = {
+        address: ev.address,
+        amount: ev.amount
+      };
       break;
     }
     case "SizeClick": {
@@ -121,6 +125,7 @@ function step(ev: EventT, s0: State): void {
       s0.cart.forEach(s => ss.push(s));
       const order = {
         __ctor: "Order",
+        paymentMethod: ev.btc ? "bitcoin" : "credit",
         data: ss
       } as Order;
       ws.send(JSON.stringify(order));
@@ -149,6 +154,9 @@ function render(): VNode {
     }
     case "payment": {
       return payment();
+    }
+    case "btcPayment": {
+      return btcPayment();
     }
     case "confirmation": {
       return confirmation();
@@ -272,6 +280,12 @@ function cart(): VNode {
       ])
     );
   });
+  const f = (ev: MouseEvent) => {
+    event({
+      __ctor: "SubmitOrder",
+      btc: true
+    });
+  };
   const items = [
     h("div.row", { key: 1 }, [h("h1", ["Shopping cart"])]),
     h("div.row", { key: 2 }, cols(["Desc", "Size", "Quantity", "Price"])),
@@ -281,7 +295,10 @@ function cart(): VNode {
   ];
   if (state.cart.size > 0) {
     items.push(
-      h("div.row", { key: 5, onclick: gotoPage("payment") }, ["Checkout"])
+      h("div.row", { key: 5, onclick: gotoPage("payment") }, [
+        "Checkout with card"
+      ]),
+      h("div.row", { key: 6, onclick: f }, ["Checkout with Bitcoin"])
     );
   }
   return h("div.container", items);
@@ -291,12 +308,23 @@ function cart(): VNode {
 function payment(): VNode {
   const f = (ev: MouseEvent) => {
     event({
-      __ctor: "SubmitOrder"
+      __ctor: "SubmitOrder",
+      btc: false
     });
   };
   return h("div.container", [
     h("div.row", { key: 1 }, ["Pay with a credit card..."]),
     h("div.row", { key: 2 }, [h("div.button", { onclick: f }, ["GO!"])])
+  ]);
+}
+
+// BTC payment page
+function btcPayment(): VNode {
+  const p = state.payment as { address: string; amount: number };
+  return h("div.container", [
+    `Please send ${p.amount.toString()} BTC to ${
+      p.address
+    } to complete your order.`
   ]);
 }
 
