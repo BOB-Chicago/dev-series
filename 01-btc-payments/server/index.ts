@@ -64,6 +64,7 @@ wss.on("connection", ws => {
   });
 });
 
+// Compute the total cost of the user's order
 function total(ss: Selection[]): number {
   const step = (t: number, s: Selection) => {
     const i = inventory.findIndex(p => p.id === s.product.id);

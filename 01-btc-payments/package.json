@@ -27,11 +27,14 @@
   "dependencies": {
     "@types/ws": "^4.0.2",
     "bignumber.js": "^6.0.0",
+    "bitcoinjs-lib": "^3.3.2",
     "maquette": "^3.2.2",
     "ws": "^5.1.1"
   },
   "devDependencies": {
+    "@types/bitcoinjs-lib": "^3.3.3",
     "@types/node": "^9.6.2",
+    "@types/zmq": "0.0.22",
     "ts-loader": "^4.1.0",
     "typescript": "^2.8.1",
     "webpack": "^4.5.0",
