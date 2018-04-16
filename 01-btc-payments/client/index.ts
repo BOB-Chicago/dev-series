@@ -4,7 +4,12 @@ import { Projector, VNode, createProjector, h } from "maquette";
 import { Product, Message, Selection, Size, Order } from "../lib";
 import { EventT, Page, State } from "./Model";
 
-/* INIT */
+/* INIT 
+ *
+ * We start on the welcome page with an empty cart, empty catalog, and nothing 
+ * selected.
+ *
+ */
 
 const state: State = {
   cart: new Map(),
@@ -13,7 +18,13 @@ const state: State = {
   selections: new Map()
 };
 
-/* WEBSOCKET */
+/* WEBSOCKET 
+ *
+ * Communication with the server is handled by a websocket.  When we connect, 
+ * the server sends us the current catalog.  When we send an order, the server 
+ * sends back a confirmation with the order id.
+ *
+ */
 
 const ws: WebSocket = new WebSocket("ws://localhost:8081");
 const projector: Projector = createProjector();
@@ -38,7 +49,11 @@ ws.addEventListener("message", (e: MessageEvent) => {
   projector.scheduleRender();
 });
 
-/* STEPPER */
+/* STEPPER 
+ *
+ * This function updates the program state for each event.
+ *
+ */
 
 function step(ev: EventT, s0: State): void {
   switch (ev.__ctor) {
