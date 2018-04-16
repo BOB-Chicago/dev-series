@@ -4,7 +4,12 @@ import { Projector, VNode, createProjector, h } from "maquette";
 import { Product, Message, Selection, Size, Order } from "../lib";
 import { EventT, Page, State } from "./Model";
 
-/* INIT */
+/* INIT 
+ *
+ * We start on the welcome page with an empty cart, empty catalog, and nothing 
+ * selected.
+ *
+ */
 
 const state: State = {
   cart: new Map(),
@@ -14,7 +19,13 @@ const state: State = {
   selections: new Map()
 };
 
-/* WEBSOCKET */
+/* WEBSOCKET 
+ *
+ * Communication with the server is handled by a websocket.  When we connect, 
+ * the server sends us the current catalog.  When we send an order, the server 
+ * sends back a confirmation with the order id.
+ *
+ */
 
 const ws: WebSocket = new WebSocket("ws://localhost:8081");
 const projector: Projector = createProjector();
@@ -39,18 +50,33 @@ ws.addEventListener("message", (e: MessageEvent) => {
     }
     case "Confirmation": {
       event({
-        __ctor: "Goto",
-        page: "confirmation"
+        __ctor: "GotOrderId",
+        orderId: msg.orderId
       });
     }
   }
   projector.scheduleRender();
 });
 
-/* STEPPER */
+/* STEPPER 
+ *
+ * This function updates the program state for each event.
+ *
+ */
 
 function step(ev: EventT, s0: State): void {
   switch (ev.__ctor) {
+    case "Goto": {
+      console.log("GOTO", ev.page);
+      s0.page = ev.page;
+      return;
+    }
+    case "Load": {
+      console.log("LOAD");
+      s0.products = ev.products;
+      s0.page = "store";
+      return;
+    }
     case "CartAdd": {
       console.log("CARTADD");
       const sel = s0.selections.get(ev.product) as Selection;
@@ -73,6 +99,12 @@ function step(ev: EventT, s0: State): void {
     case "Goto": {
       console.log("GOTO", ev.page);
       s0.page = ev.page;
+      return;
+    }
+    case "GotOrderId": {
+      console.log("GOTORDERID");
+      s0.orderId = ev.orderId;
+      s0.page = "confirmation";
       return;
     }
     case "Load": {
@@ -106,6 +138,13 @@ function step(ev: EventT, s0: State): void {
       };
       break;
     }
+    case "UserDetails": {
+      console.log("USERDETAILS");
+      s0.payment = {
+        streetAddress: ev.streetAddress
+      };
+      break;
+    }
     case "SizeClick": {
       console.log("SIZECLICK");
       if (!s0.selections.has(ev.product)) {
@@ -125,8 +164,9 @@ function step(ev: EventT, s0: State): void {
       s0.cart.forEach(s => ss.push(s));
       const order = {
         __ctor: "Order",
-        paymentMethod: ev.btc ? "bitcoin" : "credit",
-        data: ss
+        paymentMethod: ev.btc ? PaymentMethod.Bitcoin : PaymentMethod.Credit,
+        selections: ss,
+        streetAddress: (s0.payment as { streetAddress: string }).streetAddress
       } as Order;
       ws.send(JSON.stringify(order));
       return;
@@ -312,9 +352,18 @@ function payment(): VNode {
       btc: false
     });
   };
+  const g = (ev: Event) => {
+    event({
+      __ctor: "UserDetails",
+      streetAddress: (ev.target as any).value
+    });
+  };
   return h("div.container", [
     h("div.row", { key: 1 }, ["Pay with a credit card..."]),
-    h("div.row", { key: 2 }, [h("div.button", { onclick: f }, ["GO!"])])
+    h("div.row", { key: 2 }, [
+      h("input", { oninput: g, default: "Street address" }, [])
+    ]),
+    h("div.row", { key: 3 }, [h("div.button", { onclick: f }, ["GO!"])])
   ]);
 }
 
@@ -347,8 +396,9 @@ function confirmation(): VNode {
   );
   return h("div.container", [
     h("div.row", { key: 1 }, ["Success!"]),
+    h("div.row", { key: 2 }, [`Your order id is ${state.orderId}`]),
     rows,
-    h("div.row", { key: 2 }, [h("div.button", { onclick: f }, ["OK"])])
+    h("div.row", { key: 3 }, [h("div.button", { onclick: f }, ["OK"])])
   ]);
 }
 

@@ -8,36 +8,69 @@ export type Page =
   | "store"
   | "welcome";
 
-export type State = {
-  cart: Map<string, Selection>;
+export type State = Blank | Shopping | Checkout | BitcoinPayment | OrderSummary;
+
+export interface App {
   page: Page;
-  payment: null | { address: string; amount: number };
   products: Map<string, Product>;
+}
+
+export interface Blank {
+  __ctor: "Blank";
+}
+
+export interface Shopping extends App {
+  __ctor: "Shopping";
+  cart: Map<string, Selection>;
   selections: Map<string, Selection>;
-};
+}
+
+export interface Checkout extends App {
+  __ctor: "Checkout";
+  cart: Map<string, Selection>;
+  streetAddress: string;
+}
+
+export interface BitcoinPayment extends App {
+  __ctor: "BitcoinPayment";
+  bitcoinAddress: string;
+  amount: number;
+}
+
+export interface OrderSummary extends App {
+  __ctor: "OrderSummary";
+  orderId: string;
+}
 
 export type EventT =
   | CartAdd
   | ConfirmOk
   | Goto
+  | GotOrderId
   | Load
   | PaymentDetails
   | QuantityClick
   | SizeClick
-  | SubmitOrder;
-
-export interface ConfirmOk {
-  __ctor: "ConfirmOk";
-}
+  | SubmitOrder
+  | UserDetails;
 
 export interface CartAdd {
   __ctor: "CartAdd";
   product: string;
 }
 
+export interface ConfirmOk {
+  __ctor: "ConfirmOk";
+}
+
 export interface Goto {
   __ctor: "Goto";
   page: Page;
+}
+
+export interface GotOrderId {
+  __ctor: "GotOrderId";
+  orderId: string;
 }
 
 export interface Load {
@@ -66,4 +99,9 @@ export interface SizeClick {
 export interface SubmitOrder {
   __ctor: "SubmitOrder";
   btc: boolean;
+}
+
+export interface UserDetails {
+  __ctor: "UserDetails";
+  streetAddress: string;
 }

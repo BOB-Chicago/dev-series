@@ -34,6 +34,29 @@ export interface Product {
 
 export interface Order {
   __ctor: "Order";
-  data: Selection[];
-  paymentMethod: "bitcoin" | "credit";
+  paymentMethod: PaymentMethod;
+  selections: Selection[];
+  streetAddress: string;
+}
+
+export interface Confirmation {
+  __ctor: "Confirmation";
+  orderId: string;
+}
+
+/* CONSTANTS */
+
+export enum PaymentMethod {
+  Credit
+}
+
+export function sizeIndex(s: Size): number {
+  switch (s) {
+    case "S":
+      return 0;
+    case "M":
+      return 1;
+    case "L":
+      return 2;
+  }
 }
