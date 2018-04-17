@@ -1,4 +1,1 @@
-declare module "*.json" {
-	export const content: any;
-	export default content;
-}
+declare module "bitcoind-rpc";

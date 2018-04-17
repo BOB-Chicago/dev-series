@@ -1,4 +1,5 @@
 import { request } from "https";
+import { Database } from "sqlite3";
 
 // Get the BTC spot price in dollars from Coinbase
 export function spotPrice(): Promise<number> {
@@ -25,4 +26,15 @@ export function spotPrice(): Promise<number> {
     req.on("error", err => fail(err));
     req.end();
   });
+}
+
+export function openDatabase(): Database {
+  if (process.env.DATABASE === undefined) {
+    process.stderr.write("DATABASE environment variable must be set");
+    process.exit(1);
+  }
+
+  const dbFile = process.env.DATABASE as string;
+  const db = new Database(dbFile);
+  return db;
 }

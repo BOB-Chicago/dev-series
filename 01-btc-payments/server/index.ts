@@ -1,7 +1,7 @@
 import * as WebSocket from "ws";
 import { BigNumber } from "bignumber.js";
 import { HDNode } from "bitcoinjs-lib";
-import { spotPrice } from "./Util";
+import { openDatabase, spotPrice } from "./Util";
 import { txMonitor } from "./Transactions";
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import {
@@ -11,15 +11,10 @@ import {
   Message,
   Confirmation,
   Selection,
-  sizeIndex
+  sizeIndex,
+  Status
 } from "../lib";
-import { Database } from "sqlite3";
 import * as uuid from "uuid/v4";
-
-if (process.env.DATABASE === undefined) {
-  process.stderr.write("DATABASE environment variable must be set");
-  process.exit(1);
-}
 
 /* HANDLE SESSION COUNTER */
 
@@ -38,8 +33,7 @@ const wallet = HDNode.fromBase58(wallet58);
 
 /* LOAD CATALOG */
 
-const dbFile = process.env.DATABASE as string;
-const db = new Database(dbFile);
+const db = openDatabase();
 
 const catalogSql = "SELECT * FROM catalog";
 db.all(catalogSql, startServerWith);
@@ -120,13 +114,6 @@ function startServerWith(err: Error, catalog: Product[]): void {
 }
 
 /* PERSISTENCE */
-
-enum Status {
-  Received,
-  Paid,
-  Processing,
-  Shipped
-}
 
 function persistOrder(
   sels: Selection[],
@@ -246,7 +233,7 @@ function watchFor(
       db.run(
         "UPDATE orders SET status = $status WHERE id = $id",
         {
-          $status: Status.Paid,
+          $status: Status.Confirming,
           $id: id
         }
         // FIXME: recover from errors

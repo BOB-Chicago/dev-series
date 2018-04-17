@@ -51,6 +51,14 @@ export enum PaymentMethod {
   Credit
 }
 
+export enum Status {
+  Received,
+  Paid,
+  Processing,
+  Shipped,
+  Confirming
+}
+
 export function sizeIndex(s: Size): number {
   switch (s) {
     case "S":
