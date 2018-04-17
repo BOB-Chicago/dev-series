@@ -1,0 +1,24 @@
+{
+  "wallet58": "tprv8ZgxMBicQKsPf3Fvxg2Yqrbc2hc5rAtywYYMQ7mEkxcS4GeuEpX1toqqt885dmHDkt7s7byt99kj5NKf495apwTmzzcZfS2d4hz4siHZErc",
+  "txs": [
+    {
+      "inputs": [
+        {
+          "fullPath": "m/0'/3",
+          "txId": "de9d1ba32bfb53815cb588a63a55137165f01a67c2226cbfb614abe435754e67",
+          "vout": 2
+        }
+      ],
+      "outputs": [
+        {
+          "address": "mwSLFcSCJyp5hoLCcnhQ7Cg4rEheNvAt59",
+          "amount": 1e8
+        },
+        {
+          "address": "mw4Sn3wjkgAWYpR2HvWgKnVvWyqLpALQJL",
+          "amount": 6000
+        }
+      ]
+    }
+  ]
+}

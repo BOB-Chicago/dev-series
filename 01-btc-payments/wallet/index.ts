@@ -11,6 +11,12 @@ import { randomBytes } from "crypto";
 
 import { Input } from "./Types";
 
+/* CONFIG */
+
+const network = networks.testnet;
+
+/* PROGRAM */
+
 if (typeof process.argv[2] === "undefined") {
   process.stderr.write("See readme for usage");
   process.exit(1);
@@ -61,7 +67,7 @@ function deriveKey(priv: boolean) {
 }
 
 function newWallet() {
-  const wallet = HDNode.fromSeedBuffer(randomBytes(64));
+  const wallet = HDNode.fromSeedBuffer(randomBytes(64), network);
   process.stdout.write(JSON.stringify(wallet.toBase58()));
 }
 
@@ -72,12 +78,13 @@ function spend() {
   });
   process.stdin.on("end", () => {
     const sp = JSON.parse(data) as Input.Spend;
-    const wallet = HDNode.fromBase58(sp.wallet58);
+    const wallet = HDNode.fromBase58(sp.wallet58, network);
     const signed = sp.txs.map(tx => {
-      let txb = new TransactionBuilder(networks.testnet /* TESTNET */);
+      let txb = new TransactionBuilder(network);
       tx.outputs.forEach(out => txb.addOutput(out.address, out.amount));
       for (let i = 0; i < tx.inputs.length; i++) {
-        txb.addInput(tx.inputs[i].txId, tx.inputs[i].vout);
+        const txId = Buffer.from(tx.inputs[i].txId, "hex");
+        txb.addInput(txId, tx.inputs[i].vout);
         txb.sign(i, wallet.derivePath(tx.inputs[i].fullPath).keyPair);
       }
       return txb.build().toHex();
