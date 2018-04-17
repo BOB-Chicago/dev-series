@@ -11,23 +11,23 @@ export type Page =
 export type State = Blank | Shopping | Checkout | BitcoinPayment | OrderSummary;
 
 export interface App {
+  cart: Map<string, Selection>;
   page: Page;
   products: Map<string, Product>;
 }
 
 export interface Blank {
   __ctor: "Blank";
+  page: "welcome";
 }
 
 export interface Shopping extends App {
   __ctor: "Shopping";
-  cart: Map<string, Selection>;
   selections: Map<string, Selection>;
 }
 
 export interface Checkout extends App {
   __ctor: "Checkout";
-  cart: Map<string, Selection>;
   streetAddress: string;
 }
 
