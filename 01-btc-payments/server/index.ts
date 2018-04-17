@@ -52,7 +52,6 @@ function startServerWith(err: Error, catalog: Product[]): void {
     process.stderr.write(err.toString());
     process.exit(1);
   }
-  let addrIndex = 0;
   const wss = new WebSocket.Server({ port: 8081 });
   wss.on("connection", ws => {
     console.log("CONNECTION");
@@ -88,22 +87,25 @@ function startServerWith(err: Error, catalog: Product[]): void {
               .dividedBy(spot)
               .decimalPlaces(8);
             // generate address
+            const index = newIndex();
             const address = wallet
               .derive(sessionIndex)
-              .derive(addrIndex)
+              .derive(index)
               .getAddress();
-            addrIndex++;
-            persistBitcoin(id, addrIndex, btcAmount);
+            persistBitcoin(id, index, btcAmount);
             const details = {
               __ctor: "PaymentDetails",
               address,
               amount: btcAmount.toNumber()
             } as PaymentDetails;
             // watch for the order
-            txMonitor.on(
-              "btctx",
-              watchFor(address, btcAmount.multipliedBy("1e8"))
+            const watcher = watchFor(
+              address,
+              btcAmount.multipliedBy("1e8"),
+              path(index),
+              id
             );
+            txMonitor.on("btctx", watcher);
             ws.send(JSON.stringify(details));
           }
         }
@@ -152,7 +154,7 @@ function persistOrder(
     s =>
       new Promise((resolve, reject) =>
         db.run(
-          `INSERT INTO purchases VALUES ($orderId, $itemId, $size, $quantity)`,
+          "INSERT INTO purchases VALUES ($orderId, $itemId, $size, $quantity)",
           {
             $orderId: orderId,
             $itemId: s.product.id,
@@ -177,13 +179,12 @@ function persistBitcoin(
   index: number,
   amount: BigNumber
 ): Promise<void> {
-  const addressPath = sessionIndex.toString() + "/" + index.toString();
   return new Promise((resolve, reject) =>
     db.run(
-      "INSERT INTO purchases VALUE ($id, $path, $amount)",
+      "INSERT INTO bitcoinPayments (orderId, addressPath, amount) VALUES ($id, $path, $amount)",
       {
         $id: orderId,
-        $path: addressPath,
+        $path: path(index),
         $amount: amount.toString()
       },
       (err: Error) => {
@@ -202,6 +203,10 @@ function timestamp(): number {
   return Math.floor(ms / 1000);
 }
 
+function path(aIx: number): string {
+  return sessionIndex.toString() + "/" + aIx.toString();
+}
+
 // Compute the total cost of the user's order
 function total(ss: Selection[], catalog: Product[]): number {
   const step = (t: number, s: Selection) => {
@@ -214,12 +219,37 @@ function total(ss: Selection[], catalog: Product[]): number {
 // Inpect incoming transactions
 function watchFor(
   address: string,
-  amount: BigNumber
-): (out: [number, string]) => void {
-  return ([outAmt, outAddr]) => {
+  amount: BigNumber,
+  path: string,
+  id: string
+): (out: [number, string, string]) => void {
+  return ([outAmt, outAddr, txHash]) => {
     if (outAddr === address && amount.isLessThanOrEqualTo(outAmt)) {
       // Found the tx order
       // order to the confirming bucket
+      db.run(
+        "UPDATE bitcoinPayments SET txHash = $hash WHERE addressPath = $path",
+        {
+          $hash: txHash,
+          $path: path
+        }
+        // FIXME: deal with errors
+      );
+      db.run(
+        "UPDATE orders SET status = $status WHERE id = $id",
+        {
+          $status: Status.Paid,
+          $id: id
+        }
+        // FIXME: recover from errors
+      );
     }
   };
+}
+
+let addressIndex = 0;
+function newIndex(): number {
+  const index = addressIndex;
+  addressIndex++;
+  return index;
 }
