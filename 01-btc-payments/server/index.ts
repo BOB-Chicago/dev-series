@@ -3,7 +3,7 @@ import { BigNumber } from "bignumber.js";
 import { HDNode } from "bitcoinjs-lib";
 import { spotPrice } from "./Util";
 import { txMonitor } from "./Transactions";
-import { readFileSync } from "fs";
+import { existsSync, readFileSync, writeFileSync } from "fs";
 import {
   PaymentMethod,
   PaymentDetails,
@@ -20,6 +20,16 @@ if (process.env.DATABASE === undefined) {
   process.stderr.write("DATABASE environment variable must be set");
   process.exit(1);
 }
+
+/* HANDLE SESSION COUNTER */
+
+if (!existsSync("session.dat")) {
+  process.stderr.write("Cannot find session counter file");
+  process.exit(2);
+}
+
+const sessionIndex = parseInt(readFileSync("session.dat", "utf8"));
+writeFileSync("session.dat", (sessionIndex + 1).toString());
 
 /* LOAD WALLET */
 
@@ -42,6 +52,7 @@ function startServerWith(err: Error, catalog: Product[]): void {
     process.stderr.write(err.toString());
     process.exit(1);
   }
+  let addrIndex = 0;
   const wss = new WebSocket.Server({ port: 8081 });
   wss.on("connection", ws => {
     console.log("CONNECTION");
@@ -53,29 +64,36 @@ function startServerWith(err: Error, catalog: Product[]): void {
     ws.on("message", async (raw: string) => {
       const msg = JSON.parse(raw) as Message;
       if (msg.__ctor === "Order") {
-        /* ... process order ... */
-        const id = await persist(msg.selections, msg.streetAddress);
+        const id = await persistOrder(
+          msg.selections,
+          msg.streetAddress,
+          msg.paymentMethod
+        );
         switch (msg.paymentMethod) {
-          case "credit": {
+          case PaymentMethod.Credit: {
             /* ... process order ... */
-            console.log(msg.data);
             const conf = {
-              __ctor: "Confirmation"
+              __ctor: "Confirmation",
+              orderId: id
             } as Confirmation;
             ws.send(JSON.stringify(conf));
             break;
           }
-          case "bitcoin": {
-            // generate address
-            const address = wallet.derive(oid).getAddress();
+          case PaymentMethod.Bitcoin: {
             // compute the BTC price
             const spot = await spotPrice();
-            const totalCents = new BigNumber(total(msg.data));
+            const totalCents = new BigNumber(total(msg.selections, catalog));
             const btcAmount = totalCents
               .dividedBy(100)
               .dividedBy(spot)
               .decimalPlaces(8);
-            // persist the order
+            // generate address
+            const address = wallet
+              .derive(sessionIndex)
+              .derive(addrIndex)
+              .getAddress();
+            addrIndex++;
+            persistBitcoin(id, addrIndex, btcAmount);
             const details = {
               __ctor: "PaymentDetails",
               address,
@@ -103,7 +121,11 @@ enum Status {
   Shipped
 }
 
-function persist(sels: Selection[], address: string): Promise<string> {
+function persistOrder(
+  sels: Selection[],
+  address: string,
+  method: PaymentMethod
+): Promise<string> {
   const orderId = uuid();
   const orderSql =
     "INSERT INTO orders VALUES ($orderId, $timestamp, $method, $status, $address)";
@@ -150,13 +172,38 @@ function persist(sels: Selection[], address: string): Promise<string> {
   return Promise.all([order, ...items]).then(() => orderId);
 }
 
+function persistBitcoin(
+  orderId: string,
+  index: number,
+  amount: BigNumber
+): Promise<void> {
+  const addressPath = sessionIndex.toString() + "/" + index.toString();
+  return new Promise((resolve, reject) =>
+    db.run(
+      "INSERT INTO purchases VALUE ($id, $path, $amount)",
+      {
+        $id: orderId,
+        $path: addressPath,
+        $amount: amount.toString()
+      },
+      (err: Error) => {
+        if (err === null) {
+          resolve();
+        } else {
+          reject(err);
+        }
+      }
+    )
+  );
+}
+
 function timestamp(): number {
   let ms = Date.now();
   return Math.floor(ms / 1000);
 }
 
 // Compute the total cost of the user's order
-function total(ss: Selection[]): number {
+function total(ss: Selection[], catalog: Product[]): number {
   const step = (t: number, s: Selection) => {
     const i = catalog.findIndex(p => p.id === s.product.id);
     return i >= 0 ? t + s.quantity * catalog[i].price : t;
