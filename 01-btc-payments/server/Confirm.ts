@@ -1,6 +1,6 @@
 // Make sure that payments are confirming
 
-import * as RpcClient from "bitcoind-rpc";
+import RpcClient from "bitcoind-rpc";
 
 import { openDatabase } from "./Util";
 import { PaymentMethod, Status } from "../lib";
@@ -46,6 +46,7 @@ function withResults(err: Error, rows: Row[]) {
     // Get information about the txHash
     const d = await txDepth(row.txHash);
     if (d >= nBlocks) {
+      process.stdout.write("Updating status");
       db.run("UPDATE orders SET status = $status WHERE id = $id", {
         $status: Status.Paid,
         $id: row.id
