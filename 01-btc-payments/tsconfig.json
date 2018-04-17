@@ -15,6 +15,7 @@
 	},
 	"include": [
 		"./client/*",
-		"./server/*"
+		"./server/*",
+    "./wallet/*"
 	]
 }

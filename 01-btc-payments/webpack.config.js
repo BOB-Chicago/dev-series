@@ -6,7 +6,7 @@ const clientConfig = {
   mode: "development",
   output: {
     path: __dirname + "/build",
-    filename: "[name].js"
+    filename: "client.js"
   },
   resolve: {
     extensions: [".ts", ".js" ]
@@ -22,4 +22,27 @@ const clientConfig = {
   target: "web"
 }
 
-module.exports = [ clientConfig ];
+const walletConfig = {
+  devtool: "inline-source-map",
+  entry: {
+    client: "./wallet/index.ts",
+  },
+  mode: "development",
+  output: {
+    path: __dirname + "/build",
+    filename: "wallet.js"
+  },
+  resolve: {
+    extensions: [".ts", ".js" ]
+  },
+  module: {
+    rules: [
+      { 
+        test: /\.ts$/,
+        loader: "ts-loader"
+      }
+    ]
+  },
+  target: "node"
+}
+module.exports = [ clientConfig, walletConfig ];
