@@ -47,6 +47,7 @@ db.all(catalogSql, startServerWith);
 /* WEBSOCKET SERVER */
 
 function startServerWith(err: Error, catalog: Product[]): void {
+  process.stdout.write("starting...");
   // We won't recover from a failure to retrieve the catalog
   if (err !== null) {
     process.stderr.write(err.toString());
@@ -54,11 +55,12 @@ function startServerWith(err: Error, catalog: Product[]): void {
   }
   const wss = new WebSocket.Server({ port: 8081 });
   wss.on("connection", ws => {
-    console.log("CONNECTION");
+    process.stdout.write("connection");
     const payload = {
       __ctor: "Products",
       data: catalog
     };
+    process.stdout.write("sending orders");
     ws.send(JSON.stringify(payload));
     ws.on("message", async (raw: string) => {
       const msg = JSON.parse(raw) as Message;
@@ -70,6 +72,7 @@ function startServerWith(err: Error, catalog: Product[]): void {
         );
         switch (msg.paymentMethod) {
           case PaymentMethod.Credit: {
+            process.stdout.write("credit card order received");
             /* ... process order ... */
             const conf = {
               __ctor: "Confirmation",
@@ -79,6 +82,7 @@ function startServerWith(err: Error, catalog: Product[]): void {
             break;
           }
           case PaymentMethod.Bitcoin: {
+            process.stdout.write("bitcoin order received");
             // compute the BTC price
             const spot = await spotPrice();
             const totalCents = new BigNumber(total(msg.selections, catalog));
@@ -105,6 +109,7 @@ function startServerWith(err: Error, catalog: Product[]): void {
               path(index),
               id
             );
+            process.stdout.write("watching for payment");
             txMonitor.on("btctx", watcher);
             ws.send(JSON.stringify(details));
           }
@@ -128,6 +133,7 @@ function persistOrder(
   address: string,
   method: PaymentMethod
 ): Promise<string> {
+  process.stdout.write("saving order");
   const orderId = uuid();
   const orderSql =
     "INSERT INTO orders VALUES ($orderId, $timestamp, $method, $status, $address)";
@@ -138,8 +144,8 @@ function persistOrder(
         $address: address,
         $orderId: orderId,
         $timestamp: timestamp(),
-        $method: PaymentMethod.Credit,
-        $status: Status.Paid
+        $method: method,
+        $status: method == PaymentMethod.Credit ? Status.Paid : Status.Received
       },
       (err: Error) => {
         if (err !== null) {
@@ -179,6 +185,7 @@ function persistBitcoin(
   index: number,
   amount: BigNumber
 ): Promise<void> {
+  process.stdout.write("saving bitcoin details");
   return new Promise((resolve, reject) =>
     db.run(
       "INSERT INTO bitcoinPayments (orderId, addressPath, amount) VALUES ($id, $path, $amount)",
@@ -223,10 +230,11 @@ function watchFor(
   path: string,
   id: string
 ): (out: [number, string, string]) => void {
-  return ([outAmt, outAddr, txHash]) => {
+  const watcher = ([outAmt, outAddr, txHash]: [number, string, string]) => {
     if (outAddr === address && amount.isLessThanOrEqualTo(outAmt)) {
       // Found the tx order
       // order to the confirming bucket
+      process.stdout.write("Found a payment we care about");
       db.run(
         "UPDATE bitcoinPayments SET txHash = $hash WHERE addressPath = $path",
         {
@@ -244,7 +252,10 @@ function watchFor(
         // FIXME: recover from errors
       );
     }
+    // Remove listener
+    txMonitor.removeListener("btctx", watcher);
   };
+  return watcher;
 }
 
 let addressIndex = 0;
