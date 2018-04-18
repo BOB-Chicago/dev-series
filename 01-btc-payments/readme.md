@@ -62,6 +62,7 @@ bitcoind -datadir=$HOME/.bitcoin-testnet
 then
 
 ```
+npm install
 npm run build
 npm run init
 echo 0 > session.dat
