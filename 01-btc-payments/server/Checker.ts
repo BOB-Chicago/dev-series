@@ -48,10 +48,8 @@ function withResults(err: Error, rows: Row[]) {
     // Get information about the txId
     try {
       const d = await txDepth(row.txId);
-      console.log(row.txId);
-      console.log(d);
       if (d >= nBlocks) {
-        process.stdout.write(`Updating status for ${row.id}`);
+        process.stdout.write(`Updating status for ${row.id}\n`);
         db.run("UPDATE orders SET status = $status WHERE id = $id", {
           $status: Status.Paid,
           $id: row.id
@@ -59,7 +57,7 @@ function withResults(err: Error, rows: Row[]) {
       }
     } catch (err) {
       // do nothing
-      console.log(err);
+      process.stderr.write(err.toString() + "\n");
     }
   });
 }

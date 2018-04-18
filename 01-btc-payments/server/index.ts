@@ -234,7 +234,7 @@ function watchFor(
     if (outAddr === address && amount.isLessThanOrEqualTo(outAmt)) {
       // Found the tx order
       // order to the confirming bucket
-      process.stdout.write("Found a payment we care about");
+      process.stdout.write("Found a payment we care about\n");
       db.run(
         "UPDATE bitcoinPayments SET txId = $txid WHERE addressPath = $path",
         {
