@@ -79,7 +79,7 @@ function step(ev: EventT, s0: State): State {
         paymentMethod: PaymentMethod.Credit,
         products: (s0 as App).products,
         streetAddress: ""
-      } as Checkout;
+      };
       break;
     }
     case "Load": {
@@ -187,12 +187,12 @@ function step(ev: EventT, s0: State): State {
     case "SubmitOrder": {
       console.log("SUBMITORDER");
       const ss = Array.from((s0 as Checkout).cart.values()) as Selection[];
-      const order = {
+      const order: Order = {
         __ctor: "Order",
-        paymentMethod: (s0 as Checkout).paymentMethod,
+        paymentMethod: ev.paymentMethod,
         selections: ss,
         streetAddress: (s0 as Checkout).streetAddress
-      } as Order;
+      };
       ws.send(JSON.stringify(order));
     }
   }
@@ -359,10 +359,12 @@ function cart(): VNode {
         "Continue shopping"
       ])
     ];
+    const checkoutNow = () =>
+      event({
+        __ctor: "Checkout"
+      });
     if (state.cart.size > 0) {
-      items.push(
-        h("div.row", { key: 5, onclick: gotoPage("checkout") }, ["Checkout"])
-      );
+      items.push(h("div.row", { key: 5, onclick: checkoutNow }, ["Checkout"]));
     }
     return h("div.container", items);
   } else {
