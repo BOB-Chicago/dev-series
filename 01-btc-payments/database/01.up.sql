@@ -6,4 +6,4 @@ CREATE TABLE bitcoinPayments
   addressPath TEXT,
   amount INTEGER,
   txId TEXT
-)
+);

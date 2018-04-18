@@ -16,7 +16,7 @@ echo "{ \"wallet58\": \"$newWallet58\", \"paths\": [ \"m/0'\" ] }" \
 # setup the database
 
 cat database/init.sql | sqlite3 database.db
-cat database/01-migrations.up.sql | sqlite3 database.db
+cat database/01.up.sql | sqlite3 database.db
 
 # create the session counter
 

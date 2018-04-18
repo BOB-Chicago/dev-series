@@ -6,7 +6,7 @@
   "scripts": {
     "build": "scripts/build",
     "checker": "node build/checker.js",
-		"init": "scripts/init",
+    "init": "scripts/init",
     "server": "node dist/server/index.js",
     "test": "mocha dist/test"
   },

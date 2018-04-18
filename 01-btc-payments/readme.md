@@ -48,6 +48,8 @@ To build this project you will need
 - typescript 0.2.8
 - bicoind or bitcoin-qt 0.16
 - jq 
+- zeromq headers (libzmq-dev on Ubuntu)
+
 
 Once you have the dependencies, start bitcoin:
 
