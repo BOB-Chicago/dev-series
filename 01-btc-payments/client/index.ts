@@ -1,6 +1,7 @@
 // Client side functionality
 
 import { Projector, VNode, createProjector, h } from "maquette";
+import * as qrcode from "qrcode-generator";
 import {
   PaymentMethod,
   Product,
@@ -396,10 +397,20 @@ function payment(): VNode {
 // BTC payment page
 function btcPayment(): VNode {
   if (state.__ctor === "BitcoinPayment") {
+    const bitcoinURI = `bitcoin:${
+      state.bitcoinAddress
+    }?amount=${state.amount.toString()}&message=BOBChicago`;
+    const qr = qrcode(0, "H");
+    qr.addData(bitcoinURI);
+    qr.make();
     return h("div.container", [
-      `Please send ${state.amount.toString()} BTC to ${
-        state.bitcoinAddress
-      } to complete your order.`
+      h("div.row", { key: 1 }, [
+        `Please send ${state.amount.toString()} BTC to ${
+          state.bitcoinAddress
+        } to complete your order.`
+      ]),
+      h("div.row", { key: 2, innerHTML: qr.createImgTag(5).toString() }, []),
+      h("div.row", { key: 3 }, [h("a", { href: bitcoinURI }, [bitcoinURI])])
     ]);
   } else {
     return error();
