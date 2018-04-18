@@ -1,9 +1,9 @@
-import { Product, Selection, Size } from "../lib";
+import { PaymentMethod, Product, Selection, Size } from "../lib";
 
 export type Page =
-  | "btcPayment"
   | "cart"
   | "confirmation"
+  | "checkout"
   | "payment"
   | "store"
   | "welcome";
@@ -28,6 +28,7 @@ export interface Shopping extends App {
 
 export interface Checkout extends App {
   __ctor: "Checkout";
+  paymentMethod: PaymentMethod;
   streetAddress: string;
 }
 
@@ -44,6 +45,7 @@ export interface OrderSummary extends App {
 
 export type EventT =
   | CartAdd
+  | CheckoutE
   | ConfirmOk
   | Goto
   | GotOrderId
@@ -52,11 +54,16 @@ export type EventT =
   | QuantityClick
   | SizeClick
   | SubmitOrder
-  | UserDetails;
+  | Checkout
+  | UpdateDetails;
 
 export interface CartAdd {
   __ctor: "CartAdd";
   product: string;
+}
+
+export interface CheckoutE {
+  __ctor: "Checkout";
 }
 
 export interface ConfirmOk {
@@ -98,10 +105,10 @@ export interface SizeClick {
 
 export interface SubmitOrder {
   __ctor: "SubmitOrder";
-  btc: boolean;
+  paymentMethod: PaymentMethod;
 }
 
-export interface UserDetails {
-  __ctor: "UserDetails";
+export interface UpdateDetails {
+  __ctor: "UpdateDetails";
   streetAddress: string;
 }

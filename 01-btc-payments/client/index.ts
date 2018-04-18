@@ -10,7 +10,7 @@ import {
   Size,
   Order
 } from "../lib";
-import { App, Blank, Checkout, EventT, Page, Shopping, State } from "./Model";
+import { App, Blank, Checkout, EventT, Page, State } from "./Model";
 
 /* INIT 
  *
@@ -70,6 +70,18 @@ ws.addEventListener("message", (e: MessageEvent) => {
  */
 function step(ev: EventT, s0: State): State {
   switch (ev.__ctor) {
+    case "Checkout": {
+      console.log("CHECKOUT");
+      s0 = {
+        __ctor: "Checkout",
+        cart: (s0 as App).cart,
+        page: "checkout",
+        paymentMethod: PaymentMethod.Credit,
+        products: (s0 as App).products,
+        streetAddress: ""
+      } as Checkout;
+      break;
+    }
     case "Load": {
       console.log("LOAD");
       s0 = {
@@ -145,20 +157,16 @@ function step(ev: EventT, s0: State): State {
         amount: ev.amount,
         bitcoinAddress: ev.address,
         cart: (s0 as App).cart,
-        page: "btcPayment",
+        page: "payment",
         products: (s0 as App).products
       };
       break;
     }
-    case "UserDetails": {
-      console.log("USERDETAILS");
-      s0 = {
-        __ctor: "Checkout",
-        cart: (s0 as Shopping).cart,
-        page: "payment",
-        products: (s0 as App).products,
-        streetAddress: ev.streetAddress
-      };
+    case "UpdateDetails": {
+      console.log("UPDATEDETAILS");
+      if (s0.__ctor == "Checkout") {
+        s0.streetAddress = ev.streetAddress;
+      }
       break;
     }
     case "SizeClick": {
@@ -181,7 +189,7 @@ function step(ev: EventT, s0: State): State {
       const ss = Array.from((s0 as Checkout).cart.values()) as Selection[];
       const order = {
         __ctor: "Order",
-        paymentMethod: ev.btc ? PaymentMethod.Bitcoin : PaymentMethod.Credit,
+        paymentMethod: (s0 as Checkout).paymentMethod,
         selections: ss,
         streetAddress: (s0 as Checkout).streetAddress
       } as Order;
@@ -212,8 +220,8 @@ function render(): VNode {
     case "payment": {
       return payment();
     }
-    case "btcPayment": {
-      return btcPayment();
+    case "checkout": {
+      return checkout();
     }
     case "confirmation": {
       return confirmation();
@@ -342,12 +350,6 @@ function cart(): VNode {
         ])
       );
     });
-    const f = (ev: MouseEvent) => {
-      event({
-        __ctor: "SubmitOrder",
-        btc: true
-      });
-    };
     const items = [
       h("div.row", { key: 1 }, [h("h1", ["Shopping cart"])]),
       h("div.row", { key: 2 }, cols(["Desc", "Size", "Quantity", "Price"])),
@@ -359,10 +361,7 @@ function cart(): VNode {
     ];
     if (state.cart.size > 0) {
       items.push(
-        h("div.row", { key: 5, onclick: gotoPage("payment") }, [
-          "Checkout with card"
-        ]),
-        h("div.row", { key: 6, onclick: f }, ["Checkout with Bitcoin"])
+        h("div.row", { key: 5, onclick: gotoPage("checkout") }, ["Checkout"])
       );
     }
     return h("div.container", items);
@@ -371,31 +370,33 @@ function cart(): VNode {
   }
 }
 
-// Payment page
-function payment(): VNode {
-  const f = (ev: MouseEvent) => {
+// Gather user details
+function checkout(): VNode {
+  const card = () =>
     event({
       __ctor: "SubmitOrder",
-      btc: false
+      paymentMethod: PaymentMethod.Credit
     });
-  };
-  const g = (ev: Event) => {
+  const bitcoin = () =>
     event({
-      __ctor: "UserDetails",
-      streetAddress: (ev.target as any).value
+      __ctor: "SubmitOrder",
+      paymentMethod: PaymentMethod.Bitcoin
     });
-  };
+  const f = (e: MouseEvent) =>
+    event({
+      __ctor: "UpdateDetails",
+      streetAddress: (e.target as any).value
+    });
   return h("div.container", [
-    h("div.row", { key: 1 }, ["Pay with a credit card..."]),
-    h("div.row", { key: 2 }, [
-      h("input", { oninput: g, default: "Street address" }, [])
-    ]),
-    h("div.row", { key: 3 }, [h("div.button", { onclick: f }, ["GO!"])])
+    h("div.row", { key: 1 }, [h("h1", ["Shipping address"])]),
+    h("div.row", { key: 2 }, [h("input", { oninput: f }, [])]),
+    h("div.row", { key: 3, onclick: card }, ["Pay with card"]),
+    h("div.row", { key: 4, onclick: bitcoin }, ["Pay with bitcoin"])
   ]);
 }
 
 // BTC payment page
-function btcPayment(): VNode {
+function payment(): VNode {
   if (state.__ctor === "BitcoinPayment") {
     const bitcoinURI = `bitcoin:${
       state.bitcoinAddress
