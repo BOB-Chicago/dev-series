@@ -69,11 +69,11 @@ function txDepth(hash: string): Promise<number> {
         confirmations: number;
       };
     }
-    rpc.getTransaction(hash, true, (err: Error, { result }: Res) => {
+    rpc.getTransaction(hash, true, (err: Error, res: Res) => {
       if (err !== null) {
         fail(err);
       } else {
-        resolve(result.confirmations);
+        resolve(res.result.confirmations);
       }
     });
   });
