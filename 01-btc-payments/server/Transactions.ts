@@ -2,7 +2,7 @@ import { address, networks, Transaction } from "bitcoinjs-lib";
 import { socket } from "zmq";
 import * as EventEmitter from "events";
 
-const bitcoindSocket = "ipc:///tmp/bitcoind";
+const bitcoindSocket = "tcp://127.0.0.1:6164";
 
 /* TRANSACTION MONITOR */
 
