@@ -1,27 +1,3 @@
-const checkerConfig = {
-  devtool: "inline-source-map",
-  entry: {
-    client: "./server/Checker.ts",
-  },
-  mode: "development",
-  output: {
-    path: __dirname + "/build",
-    filename: "checker.js"
-  },
-  resolve: {
-    extensions: [".ts", ".js" ]
-  },
-  module: {
-    rules: [
-      { 
-        test: /\.ts$/,
-        loader: "ts-loader"
-      }
-    ]
-  },
-  target: "node"
-}
-
 const clientConfig = {
   devtool: "inline-source-map",
   entry: {
@@ -70,4 +46,4 @@ const walletConfig = {
   target: "node"
 }
 
-module.exports = [ checkerConfig, clientConfig, walletConfig ];
+module.exports = [ clientConfig, walletConfig ];
