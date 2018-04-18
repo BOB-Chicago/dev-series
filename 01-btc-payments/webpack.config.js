@@ -1,7 +1,7 @@
 const checkerConfig = {
   devtool: "inline-source-map",
   entry: {
-    client: "./server/Confirm.ts",
+    client: "./server/Checker.ts",
   },
   mode: "development",
   output: {

@@ -1,6 +1,6 @@
 // Make sure that payments are confirming
 
-import RpcClient from "bitcoind-rpc";
+import * as RpcClient from "bitcoind-rpc";
 
 import { openDatabase } from "./Util";
 import { PaymentMethod, Status } from "../lib";
@@ -20,8 +20,10 @@ const config = {
 const rpc = new RpcClient(config);
 
 // We need the outstanding records
-const sql =
-  "SELECT id, txHash FROM orders JOIN bitcoinPayments ON id = orderId WHERE orders.paymentMethod = $method AND orders.status = $status";
+const sql = `SELECT id, txId FROM orders 
+   JOIN bitcoinPayments ON orders.id = bitcoinPayments.orderId 
+   WHERE orders.paymentMethod = $paymentMethod AND orders.status = $status`;
+
 db.all(
   sql,
   {
@@ -33,24 +35,31 @@ db.all(
 
 interface Row {
   id: string;
-  txHash: string;
+  txId: string;
 }
 
 function withResults(err: Error, rows: Row[]) {
   if (err !== null) {
-    process.stderr.write("Problem fetching results: " + err.toString());
+    process.stderr.write("Problem fetching results: " + err.toString() + "\n");
     process.exit(1);
   }
 
   rows.forEach(async (row: Row) => {
-    // Get information about the txHash
-    const d = await txDepth(row.txHash);
-    if (d >= nBlocks) {
-      process.stdout.write("Updating status");
-      db.run("UPDATE orders SET status = $status WHERE id = $id", {
-        $status: Status.Paid,
-        $id: row.id
-      });
+    // Get information about the txId
+    try {
+      const d = await txDepth(row.txId);
+      console.log(row.txId);
+      console.log(d);
+      if (d >= nBlocks) {
+        process.stdout.write(`Updating status for ${row.id}`);
+        db.run("UPDATE orders SET status = $status WHERE id = $id", {
+          $status: Status.Paid,
+          $id: row.id
+        });
+      }
+    } catch (err) {
+      // do nothing
+      console.log(err);
     }
   });
 }
@@ -58,13 +67,16 @@ function withResults(err: Error, rows: Row[]) {
 function txDepth(hash: string): Promise<number> {
   return new Promise((resolve, fail) => {
     interface Res {
-      confirmations: number;
+      result: {
+        confirmations: number;
+      };
     }
-    rpc.getRawTransaction(hash, true, (err: Error, res: Res) => {
+    rpc.getTransaction(hash, true, (err: Error, { result }: Res) => {
       if (err !== null) {
         fail(err);
+      } else {
+        resolve(result.confirmations);
       }
-      resolve(res.confirmations);
     });
   });
 }

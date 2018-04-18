@@ -67,7 +67,7 @@ ws.addEventListener("message", (e: MessageEvent) => {
  * This function updates the program state for each event.
  *
  */
-function step(ev: EventT, s0: State): void {
+function step(ev: EventT, s0: State): State {
   switch (ev.__ctor) {
     case "Load": {
       console.log("LOAD");
@@ -78,7 +78,7 @@ function step(ev: EventT, s0: State): void {
         products: ev.products,
         selections: new Map()
       };
-      return;
+      break;
     }
     case "CartAdd": {
       console.log("CARTADD");
@@ -92,7 +92,7 @@ function step(ev: EventT, s0: State): void {
         }
         s0.selections.delete(ev.product);
       }
-      return;
+      break;
     }
     case "ConfirmOk": {
       console.log("CONFIRMOK");
@@ -103,12 +103,12 @@ function step(ev: EventT, s0: State): void {
         products: (s0 as App).products,
         selections: new Map()
       };
-      return;
+      break;
     }
     case "Goto": {
       console.log("GOTO", ev.page);
       s0.page = ev.page;
-      return;
+      break;
     }
     case "GotOrderId": {
       console.log("GOTORDERID");
@@ -119,7 +119,7 @@ function step(ev: EventT, s0: State): void {
         page: "confirmation",
         products: (s0 as App).products
       };
-      return;
+      break;
     }
     case "QuantityClick": {
       console.log("QUANTITYCLICK");
@@ -135,7 +135,7 @@ function step(ev: EventT, s0: State): void {
           }
         }
       }
-      return;
+      break;
     }
     case "PaymentDetails": {
       console.log("PAYMENTDETAILS");
@@ -173,7 +173,7 @@ function step(ev: EventT, s0: State): void {
           (s0.selections.get(ev.product) as Selection).size = ev.size;
         }
       }
-      return;
+      break;
     }
     case "SubmitOrder": {
       console.log("SUBMITORDER");
@@ -185,13 +185,13 @@ function step(ev: EventT, s0: State): void {
         streetAddress: (s0 as Checkout).streetAddress
       } as Order;
       ws.send(JSON.stringify(order));
-      return;
     }
   }
+  return s0;
 }
 
 function event(ev: EventT): void {
-  step(ev, state);
+  state = step(ev, state);
   projector.scheduleRender();
 }
 

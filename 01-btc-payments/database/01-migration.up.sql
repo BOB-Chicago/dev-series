@@ -5,5 +5,5 @@ CREATE TABLE bitcoinPayments
   orderId TEXT,
   addressPath TEXT,
   amount INTEGER,
-  txHash TEXT
+  txId TEXT
 )

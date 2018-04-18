@@ -57,7 +57,7 @@ function deriveKey(priv: boolean) {
   });
   process.stdin.on("end", () => {
     const { wallet58, paths } = JSON.parse(data) as Input.Derive;
-    const wallet = HDNode.fromBase58(wallet58);
+    const wallet = HDNode.fromBase58(wallet58, network);
     const b58s = paths.map(path => {
       const newKey = wallet.derivePath(path);
       return priv ? newKey.toBase58() : newKey.neutered().toBase58();

@@ -1,6 +1,6 @@
 import * as WebSocket from "ws";
 import { BigNumber } from "bignumber.js";
-import { HDNode } from "bitcoinjs-lib";
+import { HDNode, networks } from "bitcoinjs-lib";
 import { openDatabase, spotPrice } from "./Util";
 import { txMonitor } from "./Transactions";
 import { existsSync, readFileSync, writeFileSync } from "fs";
@@ -16,10 +16,14 @@ import {
 } from "../lib";
 import * as uuid from "uuid/v4";
 
+/* CONFIGURATION */
+
+const network = networks.testnet;
+
 /* HANDLE SESSION COUNTER */
 
 if (!existsSync("session.dat")) {
-  process.stderr.write("Cannot find session counter file");
+  process.stderr.write("Cannot find session counter file\n");
   process.exit(2);
 }
 
@@ -29,7 +33,7 @@ writeFileSync("session.dat", (sessionIndex + 1).toString());
 /* LOAD WALLET */
 
 const wallet58 = readFileSync("wallet58.key", "utf8");
-const wallet = HDNode.fromBase58(wallet58);
+const wallet = HDNode.fromBase58(wallet58, network);
 
 /* LOAD CATALOG */
 
@@ -41,20 +45,20 @@ db.all(catalogSql, startServerWith);
 /* WEBSOCKET SERVER */
 
 function startServerWith(err: Error, catalog: Product[]): void {
-  process.stdout.write("starting...");
+  process.stdout.write("starting...\n");
   // We won't recover from a failure to retrieve the catalog
   if (err !== null) {
-    process.stderr.write(err.toString());
+    process.stderr.write(err.toString() + "\n");
     process.exit(1);
   }
   const wss = new WebSocket.Server({ port: 8081 });
   wss.on("connection", ws => {
-    process.stdout.write("connection");
+    process.stdout.write("connection\n");
     const payload = {
       __ctor: "Products",
       data: catalog
     };
-    process.stdout.write("sending orders");
+    process.stdout.write("sending orders\n");
     ws.send(JSON.stringify(payload));
     ws.on("message", async (raw: string) => {
       const msg = JSON.parse(raw) as Message;
@@ -66,7 +70,7 @@ function startServerWith(err: Error, catalog: Product[]): void {
         );
         switch (msg.paymentMethod) {
           case PaymentMethod.Credit: {
-            process.stdout.write("credit card order received");
+            process.stdout.write("credit card order received\n");
             /* ... process order ... */
             const conf = {
               __ctor: "Confirmation",
@@ -76,7 +80,7 @@ function startServerWith(err: Error, catalog: Product[]): void {
             break;
           }
           case PaymentMethod.Bitcoin: {
-            process.stdout.write("bitcoin order received");
+            process.stdout.write("bitcoin order received\n");
             // compute the BTC price
             const spot = await spotPrice();
             const totalCents = new BigNumber(total(msg.selections, catalog));
@@ -97,14 +101,22 @@ function startServerWith(err: Error, catalog: Product[]): void {
               amount: btcAmount.toNumber()
             } as PaymentDetails;
             // watch for the order
+            const notification = () =>
+              ws.send(
+                JSON.stringify({
+                  __ctor: "Confirmation",
+                  orderId: id
+                })
+              );
             const watcher = watchFor(
               address,
               btcAmount.multipliedBy("1e8"),
               path(index),
-              id
+              id,
+              notification
             );
-            process.stdout.write("watching for payment");
-            txMonitor.on("btctx", watcher);
+            process.stdout.write("watching for payment\n");
+            txMonitor.on("txoutput", watcher);
             ws.send(JSON.stringify(details));
           }
         }
@@ -198,7 +210,7 @@ function timestamp(): number {
 }
 
 function path(aIx: number): string {
-  return sessionIndex.toString() + "/" + aIx.toString();
+  return sessionIndex.toString() + "'/" + aIx.toString();
 }
 
 // Compute the total cost of the user's order
@@ -215,17 +227,18 @@ function watchFor(
   address: string,
   amount: BigNumber,
   path: string,
-  id: string
+  id: string,
+  notifyUser: () => void
 ): (out: [number, string, string]) => void {
-  const watcher = ([outAmt, outAddr, txHash]: [number, string, string]) => {
+  const watcher = ([outAmt, outAddr, txId]: [number, string, string]) => {
     if (outAddr === address && amount.isLessThanOrEqualTo(outAmt)) {
       // Found the tx order
       // order to the confirming bucket
       process.stdout.write("Found a payment we care about");
       db.run(
-        "UPDATE bitcoinPayments SET txHash = $hash WHERE addressPath = $path",
+        "UPDATE bitcoinPayments SET txId = $txid WHERE addressPath = $path",
         {
-          $hash: txHash,
+          $txid: txId,
           $path: path
         }
         // FIXME: deal with errors
@@ -238,9 +251,10 @@ function watchFor(
         }
         // FIXME: recover from errors
       );
+      // Remove listener
+      txMonitor.removeListener("txoutputs", watcher);
+      notifyUser();
     }
-    // Remove listener
-    txMonitor.removeListener("btctx", watcher);
   };
   return watcher;
 }

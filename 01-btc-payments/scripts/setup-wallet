@@ -1,0 +1,13 @@
+#! /bin/bash
+
+# This script requires the tool jq
+
+# generate master key
+
+newWallet58=$(node build/wallet.js new | sed 's/"//g')
+echo -n $newWallet58 > master58.key
+
+# derive a hardened public key
+echo "{ \"wallet58\": \"$newWallet58\", \"paths\": [ \"m/0'\" ] }" \
+  | node build/wallet.js derive-pubkey \
+  | jq -rj '.[0]' > wallet58.key

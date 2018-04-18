@@ -1,4 +1,4 @@
-import { address, Transaction } from "bitcoinjs-lib";
+import { address, networks, Transaction } from "bitcoinjs-lib";
 import { socket } from "zmq";
 import * as EventEmitter from "events";
 
@@ -23,11 +23,22 @@ sock.on("message", (topic, rawtx) => {
   outs.forEach(x => txMonitor.emit("txoutput", x));
 });
 
-function parseRawTx(raw: Buffer): Array<[number, string]> {
+function parseRawTx(raw: Buffer): Array<[number, string, string]> {
   const tx = Transaction.fromBuffer(raw);
+  const res: Array<[number, string, string]> = [];
   // Prepare the outputs
-  return tx.outs.map(
-    ({ value, script }) =>
-      [value, address.fromOutputScript(script)] as [number, string]
-  );
+  for (let out of tx.outs) {
+    const { value, script } = out;
+    try {
+      res.push([
+        value,
+        address.fromOutputScript(script, networks.testnet),
+        tx.getId()
+      ]);
+    } catch (err) {
+      process.stderr.write(err.toString() + "\n");
+      // ignore
+    }
+  }
+  return res;
 }

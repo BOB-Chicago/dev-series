@@ -47,8 +47,8 @@ export interface Confirmation {
 /* CONSTANTS */
 
 export enum PaymentMethod {
-  Bitcoin,
-  Credit
+  Credit,
+  Bitcoin
 }
 
 export enum Status {

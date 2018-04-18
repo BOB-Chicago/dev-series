@@ -6,6 +6,7 @@
   "scripts": {
     "build": "scripts/build",
     "server": "node dist/server/index.js",
+    "checker": "node build/checker.js",
     "test": "mocha dist/test"
   },
   "repository": {
