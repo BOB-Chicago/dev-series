@@ -5,8 +5,9 @@
   "main": "index.js",
   "scripts": {
     "build": "scripts/build",
-    "server": "node dist/server/index.js",
     "checker": "node build/checker.js",
+		"init": "scripts/init",
+    "server": "node dist/server/index.js",
     "test": "mocha dist/test"
   },
   "repository": {

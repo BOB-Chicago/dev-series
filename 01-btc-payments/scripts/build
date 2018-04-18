@@ -1,6 +1,7 @@
 #! /bin/bash
 
 set -e
+tsc
 webpack-cli || true
 mkdir -p build/app
 mv build/client.js build/app/index.js

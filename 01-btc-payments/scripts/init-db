@@ -1,4 +1,0 @@
-#! /bin/bash
-
-cat database/init.sql | sqlite3 dev-database.db
-cat database/01-migrations.up.sql | sqlite3 dev-database.db

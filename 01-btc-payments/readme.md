@@ -37,3 +37,34 @@ Concepts
 - Hot & cold storage
 - node validation: full vs. spv
 - mempool 
+
+Dependencies
+--
+
+To build this project you will need
+
+- node 0.8.11 and npm
+- sqlite3
+- typescript 0.2.8
+- bicoind or bitcoin-qt 0.16
+- jq 
+
+Once you have the dependencies, start bitcoin:
+
+```
+mkdir $HOME/.bitcoin-testnet
+cp bitcoin.conf $HOME/.bitcoin-testnet
+bitcoind -datadir=$HOME/.bitcoin-testnet
+```
+
+then
+
+```
+npm run build
+npm run init
+echo 0 > session.dat
+DATABASE=database.db npm run server
+```
+
+and finally in a separate terminal: `DATABASE=database.db npm run checker`.
+

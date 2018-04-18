@@ -11,3 +11,13 @@ echo -n $newWallet58 > master58.key
 echo "{ \"wallet58\": \"$newWallet58\", \"paths\": [ \"m/0'\" ] }" \
   | node build/wallet.js derive-pubkey \
   | jq -rj '.[0]' > wallet58.key
+
+
+# setup the database
+
+cat database/init.sql | sqlite3 database.db
+cat database/01-migrations.up.sql | sqlite3 database.db
+
+# create the session counter
+
+echo 0 > session.dat
