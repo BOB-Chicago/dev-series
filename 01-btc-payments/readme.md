@@ -46,7 +46,7 @@ To build this project you will need
 - node 0.8.11 and npm
 - sqlite3
 - typescript 0.2.8
-- bicoind or bitcoin-qt 0.16
+- bitcoind or bitcoin-qt 0.16
 - jq 
 - zeromq headers (libzmq-dev on Ubuntu)
 
