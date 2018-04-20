@@ -89,6 +89,15 @@ function startServerWith(err: Error, catalog: Product[]): void {
               .dividedBy(spot)
               .decimalPlaces(8);
             // generate address
+            //
+            // Note that this is a totally ad hoc method for generating
+            // addresses.  During the presentation, members of the audience
+            // pointed out that if our database is lost, we will have to search
+            // a very large keyspace for our payments.
+            //
+            // This issue is addressed by BIP44, which describes a scheme for
+            // maintaining a key tree.
+            //
             const index = newIndex();
             const address = wallet
               .derive(sessionIndex)
@@ -222,7 +231,16 @@ function total(ss: Selection[], catalog: Product[]): number {
   return ss.reduce(step, 0);
 }
 
-// Inpect incoming transactions
+// Inspect incoming transactions
+//
+// Members of the audience pointed out that we could learn from what happened
+// to MT GOX!  We are supporting address types whose transactions can be
+// malleated (P2PKH, P2SH).  So it is possible that some malingerer will
+// broadcast malleated versions of our users' payments.  If one of these is
+// included in a block, it invalidates the user's original transaction.  The
+// result is that the user has paid but we don't find out because of how we are
+// watching for payments.
+//
 function watchFor(
   address: string,
   amount: BigNumber,
