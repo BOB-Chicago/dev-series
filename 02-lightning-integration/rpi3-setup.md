@@ -94,14 +94,8 @@ Next format the external drive. I did this on my Ubuntu laptop.
 
 - plug it in and look for it in the command line (e.g. `df -h`)
 - note where the device is mounted.
-- first unmount the device
-	```shell
-	$ sudo umount /dev/sdb2
-	```
-- Then reformat as NTFS, or whatever you like.
-	```shell
-	$ sudo mkfs.ntfs /dev/sdb2
-	```
+- first unmount the device `sudo umount /dev/sdb2`
+- Then reformat as NTFS, or whatever you like: `sudo mkfs.ntfs /dev/sdb2`
 
 On my 3T drive this took a while!  As I reformatted as NTFS, I installed ntfs 
 on my pi.
@@ -284,7 +278,9 @@ txindex=1
 server=1
 rpcuser=user
 rpcpassword=pass
-rpchost=127.0.0.1
+
+# Configure these according to your needs
+rpcbind=127.0.0.1 
 rpcport=6163
 
 # Raspberry Pi optimizations
