@@ -6,7 +6,7 @@
 \frame{\titlepage}
 \begin{frame}
 	\frametitle{A trustful payment channel}
-	Alfred and Brenda know and trust each other.  The create, but don't publish, 
+	Alfred and Brenda know and trust each other.  They create, but don't publish, 
 	sequence of transactions:
 	\begin{itemize}
 		\item (TX1: channel open) \\ 
@@ -14,8 +14,8 @@
 			Brenda (in: 0.1, out: 0.1)
 		\item (TX2: Brenda pays for a cab ride) \\
 			Delete TX1 \\
-			Alfred (in: 0.1, out: 0.102) \\
-			Brenda (in 0.1, out: 0.098)
+			Alfred (in: 0.1, out: 0.098) \\
+			Brenda (in 0.1, out: 0.102)
 		\item (... TXN: Alfred pays for movie tickets) \\
 			Delete TX(N-1) \\ 
 			Alfred (in: 0.1, out: 0.149) \\
@@ -27,7 +27,7 @@
 	\frametitle{Opportunities to cheat}
 	\begin{enumerate}
 		\item Alfred or Brenda could spend one of the outputs they are using to 
-			fund their transactions.
+			fund their transactions. \pause
 		\item At any point before they settle up, one of them can 
 			publish an old transaction.  To a third party on the network, their 
 			various channel states are \emph{all equally valid}.  
@@ -62,8 +62,9 @@
 	\begin{example}[P2KH script]
 		\begin{itemize}
 			\item (redeemScript) {\tiny \texttt{OP\_DUP OP\_HASH160 \$recipientKeyHash OP\_EQUALVERIFY OP\_CHECKSIG}}
-			\item (scriptSig) {\tiny\texttt{\$signature \$publicKey}}
+			\item (scriptSig) {\tiny\texttt{\$signature \$publicKey}} \pause
 		\end{itemize}
+  You must know the \texttt{\$scriptSig}s to know the transaction hash!
 	\end{example}
 \end{frame}
 \begin{frame}
@@ -76,7 +77,6 @@
 	\begin{block}{Outputs}
 		... same as before for our purposes \pause
 	\end{block}
-	% Take away: transaction ID can be known before the tx is signed
 	\begin{block}{Take away}
 		\begin{itemize}
 			\item The transaction ID is known \emph{even without} the witness (signature) data. \pause
@@ -90,8 +90,8 @@
 		\item Alfred and Brenda each contribute a SegWit input to a transaction 
 			which has a single 2-of-2 multisig output, but do not share their witness 
 			data \pause
-		\item They construct the first state update in some way referring to the 
-			opening transaction and contribute their signatures \pause
+		\item They construct the first state update in some way, spending the 
+			opening transaction's output and contribute their signatures \pause
 		\item With the refunding transaction(s) safely in hand, they contribute 
 			their witness data to the funding transaction  \pause
 		\item They publish the funding transaction, locking funds into the channel
@@ -185,7 +185,7 @@
 	\begin{block}{Notes}
 		\begin{itemize}
 			\item Brenda and Chelsea can freely share their channel updates with 
-				Alfred for verification since they are unsigned	\pause
+				Alfred for verification since they are incompletely signed	\pause
 			\item The channel updates still have the same features as before \emph{in 
 				addition} to the hash lock that protects the route 
 		\end{itemize}
