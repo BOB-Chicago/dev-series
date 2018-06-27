@@ -1,0 +1,39 @@
+\documentclass{beamer}
+\title{Introduction to lightning network protocol ideas}
+\author{Ian Shipman}
+\date{BOB Chicago {workshop} June 26, 2018}
+\begin{document}
+\frame{\titlepage}
+\section{Transaction structure}
+\begin{frame}
+	\frametitle{Pre-SegWit transaction structure}
+	Inputs:
+	\begin{itemize}
+		\item reference to a previous transaction
+		\item output index
+	\end{itemize}
+	Outputs:
+	\begin{itemize}
+		\item amount
+		\item script 
+	\end{itemize}
+	\pause
+	\begin{example}[P2KH script]
+		\small{\texttt{OP\_DUP OP\_HASH160 \$recipientKeyHash OP\_EQUALVERIFY OP\_CHECKSIG}}
+	\end{example}
+\end{frame}
+\begin{frame}
+	\frametitle{SegWit transaction structure}
+	Outputs:
+	\begin{itemize}
+		\item amount
+		\item \small{\texttt{0x02}}
+	\end{itemize}
+	% Take away: transaction ID can be known before the tx is signed
+\end{frame}
+% Payment channels as a sequence of settlements
+% The problem of old updates
+% A time based solution
+% A hash-lock based solution
+% Using more than one channel atomically
+\end{document}
