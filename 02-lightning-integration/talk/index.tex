@@ -4,7 +4,6 @@
 \date{BOB Chicago {workshop} June 26, 2018}
 \begin{document}
 \frame{\titlepage}
-% Payment channels as a sequence of settlements
 \begin{frame}
 	\frametitle{A trustful payment channel}
 	Alfred and Brenda know and trust each other.  The create, but don't publish, 
@@ -24,7 +23,6 @@
 	\end{itemize}
 	Time to settle up!  Alfred \& Brenda publish (TXN).
 \end{frame}
-% The problem of old updates
 \begin{frame}
 	\frametitle{Opportunities to cheat}
 	\begin{enumerate}
@@ -43,7 +41,9 @@
 	Verifiable deletion is not possible.  There has to be a way either 
 	\emph{override} a previous transaction or \emph{penalize} its use.
 \end{frame}
-\section{Digression: transaction structure}
+\begin{frame}
+	Now a quick digression into transaction structure
+\end{frame}
 \begin{frame}
 	\frametitle{Pre-SegWit transaction structure}
 	\begin{block}{Inputs}
@@ -90,7 +90,7 @@
 		\item Alfred and Brenda each contribute a SegWit input to a transaction 
 			which has a single 2-of-2 multisig output, but do not share their witness 
 			data \pause
-		\item The construct the first state update in some way referring to the 
+		\item They construct the first state update in some way referring to the 
 			opening transaction and contribute their signatures \pause
 		\item With the refunding transaction(s) safely in hand, they contribute 
 			their witness data to the funding transaction  \pause
@@ -109,7 +109,7 @@
 			the most recent transaction without the timelock and publish it. \pause
 	\end{itemize}
 	\begin{block}{If somebody cheats ...}
-		Suppose Alfred publishes a stale tranaction from the sequence.  Then Brenda 
+		Suppose Alfred publishes a stale transaction from the sequence.  Then Brenda 
 		can publish the most recent state and then spend her output before Alfred's 
 		time lock expires.  Unfortunately it can take \emph{a long time} to settle 
 		the dispute.
@@ -120,9 +120,75 @@
 		able to intervene in time.
 	\end{block}
 \end{frame}
-% A hash-lock based solution
 \begin{frame}
 	\frametitle{Leveraging hashlocks}
+	Another approach uses penalties to revoke old channel states. \pause
+	A \emph{hash lock} is the bitcoin script fragment \\
+	{\tiny \texttt{OP\_SOMEHASH \$targetHash OP\_EQUALVERIFY}} \\ \pause
+	To make this bit of script succeed, you must know \emph{and publish to the 
+	world} the preimage of \texttt{\$targetHash} \pause
+	\begin{block}{Pairs of channel updates}
+		Alfred generates a random secret $ s $ and prepares a 
+		transaction expressing the current state with outputs 
+		\pause
+		\begin{itemize}
+			\item (OA) Alfred can redeem in $ N $ blocks OR Brenda can redeem if she 
+				knows $ s $  \pause
+			\item (OB) Brenda can redeem immediately \pause
+		\end{itemize}
+		Alfred:  (unsigned!) transaction + \emph{previous} secret $ s' $ $ \Rightarrow $ Brenda \pause
+		Brenda: if $ s' $ unlocks the previous output for her, signature $ \Rightarrow $ Alfred
+	\end{block}
 \end{frame}
-% Using more than one channel atomically
+\begin{frame}
+	\frametitle{Penalty}
+	At any point each party could have \pause
+	\begin{enumerate}
+		\item A series of their own (stale) state updates, signed by their 
+			counterparty \pause
+		\item The secrets that unlock their counterparty's output on each of the 
+			counterparty's old state updates \pause
+	\end{enumerate}
+	To be safe each person should delete the old states! \pause
+	\begin{block}{Cheating}
+	Suppose Alfred attempts to cheat by publishing an old state \\ \pause
+	He has to wait to redeem his output... \\ \pause
+	... but Brenda can immediately take both outputs for herself because she 
+		knows the secret associated with Alfred's output on the old state
+	\end{block}
+\end{frame}
+\begin{frame}
+	\frametitle{Forming a network}
+	\begin{itemize}
+		\item Alfred and Brenda can pay each other as long as they both have an 
+			open channel with Chelsea \pause
+		\item Before Brenda updates her channel with Chelsea, she needs a guarantee 
+			that Chelsea will correspondingly update her channel with Alfred \pause
+	\end{itemize}
+	\begin{block}{Secret revelation again}
+		\begin{itemize}
+			\item Chelsea should need to know a secret to redeem her new balance from Brenda and 
+				she should have to pay Alfred for this secret \pause
+			\item Alfred must not be able to punish Chelsea by witholding the secret 
+		\end{itemize}
+	\end{block}
+\end{frame}
+\begin{frame}
+	\frametitle{Protocol}
+	\begin{enumerate}
+		\item Alfred generates a route secret and sends its hash to Brenda as part of an invoice \pause
+		\item Brenda and Chelsea work out a channel update to their channel which allows Alfred to 
+			spend Chelsea's output before Chelsea by publishing the route secret but after a certain delay \pause
+		\item Alfred and Chelsea work out a channel update to their channel where 
+			Alfred must reveal the route secret to spend his output \pause
+	\end{enumerate}
+	\begin{block}{Notes}
+		\begin{itemize}
+			\item Brenda and Chelsea can freely share their channel updates with 
+				Alfred for verification since they are unsigned	\pause
+			\item The channel updates still have the same features as before \emph{in 
+				addition} to the hash lock that protects the route 
+		\end{itemize}
+	\end{block}
+\end{frame}
 \end{document}
