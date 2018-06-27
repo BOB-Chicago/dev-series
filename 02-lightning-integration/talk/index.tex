@@ -4,36 +4,125 @@
 \date{BOB Chicago {workshop} June 26, 2018}
 \begin{document}
 \frame{\titlepage}
-\section{Transaction structure}
+% Payment channels as a sequence of settlements
+\begin{frame}
+	\frametitle{A trustful payment channel}
+	Alfred and Brenda know and trust each other.  The create, but don't publish, 
+	sequence of transactions:
+	\begin{itemize}
+		\item (TX1: channel open) \\ 
+			Alfred (in: 0.1, out: 0.1) \\
+			Brenda (in: 0.1, out: 0.1)
+		\item (TX2: Brenda pays for a cab ride) \\
+			Delete TX1 \\
+			Alfred (in: 0.1, out: 0.102) \\
+			Brenda (in 0.1, out: 0.098)
+		\item (... TXN: Alfred pays for movie tickets) \\
+			Delete TX(N-1) \\ 
+			Alfred (in: 0.1, out: 0.149) \\
+			Brenda (in: 0.1, out: 0.059)
+	\end{itemize}
+	Time to settle up!  Alfred \& Brenda publish (TXN).
+\end{frame}
+% The problem of old updates
+\begin{frame}
+	\frametitle{Opportunities to cheat}
+	\begin{enumerate}
+		\item Alfred or Brenda could spend one of the outputs they are using to 
+			fund their transactions.
+		\item At any point before they settle up, one of them can 
+			publish an old transaction.  To a third party on the network, their 
+			various channel states are \emph{all equally valid}.  
+	\end{enumerate}
+	\pause
+	\begin{block}{Question}
+		How can Alfred \& Brenda create the sequence of transactions in such a way 
+		that cheating is much more difficult?
+	\end{block}
+	\pause
+	Verifiable deletion is not possible.  There has to be a way either 
+	\emph{override} a previous transaction or \emph{penalize} its use.
+\end{frame}
+\section{Digression: transaction structure}
 \begin{frame}
 	\frametitle{Pre-SegWit transaction structure}
-	Inputs:
-	\begin{itemize}
-		\item reference to a previous transaction
-		\item output index
-	\end{itemize}
-	Outputs:
-	\begin{itemize}
-		\item amount
-		\item script 
-	\end{itemize}
-	\pause
+	\begin{block}{Inputs}
+		\begin{itemize}
+			\item reference to a previous transaction \pause
+			\item output index \pause
+			\item scriptSig \pause
+		\end{itemize}
+	\end{block}
+	\begin{block}{Outputs}
+		\begin{itemize}
+			\item amount \pause
+			\item redeemScript \pause 
+		\end{itemize}
+	\end{block}
 	\begin{example}[P2KH script]
-		\small{\texttt{OP\_DUP OP\_HASH160 \$recipientKeyHash OP\_EQUALVERIFY OP\_CHECKSIG}}
+		\begin{itemize}
+			\item (redeemScript) {\tiny \texttt{OP\_DUP OP\_HASH160 \$recipientKeyHash OP\_EQUALVERIFY OP\_CHECKSIG}}
+			\item (scriptSig) {\tiny\texttt{\$signature \$publicKey}}
+		\end{itemize}
 	\end{example}
 \end{frame}
 \begin{frame}
 	\frametitle{SegWit transaction structure}
-	Outputs:
-	\begin{itemize}
-		\item amount
-		\item \small{\texttt{0x02}}
-	\end{itemize}
+	\begin{block}{Inputs} 
+		\begin{itemize}
+			\item scriptSig: empty (native) or {\tiny \texttt{OP\_0 \$redeemScriptHash}} \pause
+		\end{itemize}
+	\end{block}
+	\begin{block}{Outputs}
+		... same as before for our purposes \pause
+	\end{block}
 	% Take away: transaction ID can be known before the tx is signed
+	\begin{block}{Take away}
+		\begin{itemize}
+			\item The transaction ID is known \emph{even without} the witness (signature) data. \pause
+			\item Alfred and Brenda can now safely lock funds into a channel.
+		\end{itemize}
+	\end{block}
 \end{frame}
-% Payment channels as a sequence of settlements
-% The problem of old updates
+\begin{frame}
+	\frametitle{Opening a channel}
+	\begin{enumerate}
+		\item Alfred and Brenda each contribute a SegWit input to a transaction 
+			which has a single 2-of-2 multisig output, but do not share their witness 
+			data \pause
+		\item The construct the first state update in some way referring to the 
+			opening transaction and contribute their signatures \pause
+		\item With the refunding transaction(s) safely in hand, they contribute 
+			their witness data to the funding transaction  \pause
+		\item They publish the funding transaction, locking funds into the channel
+	\end{enumerate}
+\end{frame}
 % A time based solution
+\begin{frame}
+	\frametitle{Leveraging timelocks}
+	Alfred and Brenda can improve their channel by adding timelocks.
+	\pause
+	\begin{itemize}
+		\item They agree on a channel expiration $ T = 20000 $ \pause
+		\item The $ n^{th} $ channel update is locked for $ T - 10 n $ blocks. \pause
+		\item When they are ready to settle up, they create and sign a version of 
+			the most recent transaction without the timelock and publish it. \pause
+	\end{itemize}
+	\begin{block}{If somebody cheats ...}
+		Suppose Alfred publishes a stale tranaction from the sequence.  Then Brenda 
+		can publish the most recent state and then spend her output before Alfred's 
+		time lock expires.  Unfortunately it can take \emph{a long time} to settle 
+		the dispute.
+	\end{block}
+	\pause
+	\begin{block}{But if Brenda goes offline...}
+		... then she will not see that the old state was published and may not be 
+		able to intervene in time.
+	\end{block}
+\end{frame}
 % A hash-lock based solution
+\begin{frame}
+	\frametitle{Leveraging hashlocks}
+\end{frame}
 % Using more than one channel atomically
 \end{document}
