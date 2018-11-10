@@ -1,11 +1,14 @@
 Dive into Monero
 ====
 
-Here are solutions to the tasks that we covered in the workshop:
 
-- `dumb25519.py`: useful for algorithm testing only; it is neither compatible 
-  with Monero's encoding nor cryptographically secure, and should not be used 
-  for any production work
+This repo contains `dumb25519.py`, an ECC library.  It is neither compatible 
+with Monero's encoding nor cryptographically secure, and should not be used for 
+any production work.  The library is intended to make playing around with ECC 
+really easy.
+
+There are also solutions to the workshop tasks (slides should be posted soon):
+
 - `schnorr.py`: working version of the Schnorr signature task
 - `pedersen.py`: working version of the Pedersen commitment sum task
 - `xmrchain.py`: working version of the xmrchain.net API task
