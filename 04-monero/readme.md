@@ -1,6 +1,14 @@
 Dive into Monero
 ====
 
+Slides
+--
+
+The slides from the talk are available at `slides.pdf` and present some tasks
+we went over during the workshop.
+
+Code
+--
 
 This repo contains `dumb25519.py`, an ECC library.  It is neither compatible 
 with Monero's encoding nor cryptographically secure, and should not be used for 
