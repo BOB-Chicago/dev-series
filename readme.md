@@ -1,7 +1,7 @@
 B.O.B. Developer Series
-==
+====
 
-Welcome to the repository for our developer series!  We have a Keybase team: `bob_chicago.workshops`.
+Welcome to the repository for our developer series!  We have a Keybase channel: `bob_chicago #workshops`.
 
 1. _2018-04-18_ Adding BTC payments to your T-shirt store [^1] ([video][payments])
 2. _2018-06-28_ Integrating with the lightning network ([video][lightning])
@@ -18,3 +18,10 @@ Welcome to the repository for our developer series!  We have a Keybase team: `bo
 
 [^1]: @aantonop dropped by to provide expert commentary and refine 
   @GambolingPangolin's crude development attempts
+
+Warning
+----
+
+The point of this code is to learn how to manipulate cryptoassets and their 
+related data structures.  None of the code should be considered stable, 
+reliable, or safe unless explicitly marked as such.
