@@ -287,4 +287,25 @@ Exciting property: validity of multiple blocks can be inferred from their net va
 
 ---
 
-## Confidential assets
+# Confidential assets
+
+---
+
+Problem: maintain a partition of the outputs into mutually non-fungible groups, but without revealing the group to which any particular output belongs
+
+Idea: vary one of the Pedersen parameter points
+
+---
+
+* For each asset type `A` generate a point `H_A`
+* Confidentiality: outputs should be associated with `H_A` but indirectly
+
+---
+
+Can still balance transactions even when using `H ~ H_A + r * G` to commit outputs:
+
+```
+x * G + u * H_A = (x - r * u) * G + u * (H_A + r * G)
+```
+
+_NB:_ roles of `G` and `H` are reversed from above
