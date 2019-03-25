@@ -50,6 +50,10 @@ MimbleWimble and Liquid
 
     `DLOG` solves discrete log as often as `BREAK` fools Bob.
 
+    _Fiat-Shamir heuristic_
+
+     Idea: replace the challenge value with the value of a random function.  Say `h` is a random scalar-valued function on group elements.  Then Alice can form `s := h(R) * x + r, R := r * G` to prove her knowledge of `x` without first getting a challenge value.  This becomes a digital signature if we assume that `h` is a random group-valued function on strings: `s := h(string(R) + message) * x + r`.
+
 5.  Commitment schemes
 
     _Components_
@@ -61,6 +65,8 @@ MimbleWimble and Liquid
     > Given `x` and `r` no algorithm can find `x' != x` and `r'` such that `commit x r == commit x' r'` with non-negligible probability
 
     _Hiding:_  It should not be possible to compute the commited value better than random guessing
+
+    > Given `commit x r`, no algorithm can find `x` with non-negligible probability
 
 
 ## Confidential transactions
@@ -87,27 +93,63 @@ MimbleWimble and Liquid
 
 2.  The construction
 
+    In this setting, all outputs have a blinding factor `r` in addition to an amount `a`.  The blinding factor is private information of the output owner.
 
+    Transaction contents
 
-## Confidential assets
+    * Inputs: `(a_1, r_1), (a_2, r_2)` (appearing as `commit a_1 r_1` etc.)
+    * Input signatures
+    * Outputs: `(b_1, s_1), (b_2, s_2), (b_3, s_3)`
+    * Output keys / scripts and range proofs
+    * Fee: f
+
+    Observe that the transaction is balanced iff `a_1 + a_2 + f = b_1 + b_2 + b_3`.  If it is also the case that `r_1 + r_2 = s_1 + s_2 + s_3` then
+
+    ```
+    commit b_1 s_1 + commit b_2 s_2 + commit b_3 s_3 - commit a_1 r_1 - commit a_2 r_2
+    = commit (b_1 + b_2 + b_3 - a_1 - a_2) (s_1 + s_2 + s_3 - r_1 - r_2)
+    = f * G
+    ```
+
+    By using hiding commitments and range proofs, the value described by a transaction is obscured.
 
 
 ## MimbleWimble transactions
 
-1.  Interactive protocol
-2.  Address layers
+One big insight of MimbleWimble is that confidential transactions that fail to balance provide an ownership mechanism via knowledge of the random values in the commitments.
+
+MimbleWimble transactions are constructed interactively:
+
+1. Payer collects unspent outputs `(a_1, r_1), ... (a_n, r_n)` (with range proofs; omitted)
+2. Payer defines a change output `(a', r')` and a fee
+3. Payer: `r := r_1 + ... + r_n - r' ~> Payee`
+4. Payee defines new outputs `(b_1, s_1), ... (b_m, s_m)` such that `a_1 + ... + a_n + a' + f = b_1 + ... + b_m`
+5. Payee creates a generic signature with the defect key `k = s_1 + ... + s_m - r` and broadcasts it along with the transaction
+
+_NB:_ `grin` implements the transaction construction flow differently, requiring an additional round of interaction
 
 ## MimbleWimble: blocks & transaction merging
 
-1.  Signature consolidation
-2.  Block structure
+MimbleWimble blocks are organized differently (ignoring coinbase txs):
 
-## Liquid network
+1. List of all inputs `[i_0, ..., i_n]` to transactions included in the block
+2. List of all outputs `[o_0, ..., o_m]`
+3. Total fee `f`
+4. Defects `[K_1, ..., K_l]` and corresponding signatures
 
-1.  Design goals
+Validity:
 
-    * 1-to-1 peg with BTC
-    * Improved privacy
-    * Support for several assets
+* signatures are valid
+* `i_0 + ... + i_n + f * G = o_0 + ... + o_m + K_1 + ... + K_l`
 
-2.  Security model
+_NB:_ There are no individual transactions present, although the list of defects reveals how many there are
+
+One exciting property is that the validity of multiple blocks can be inferred from their net validity.  The transaction and block balancing equations have a global counterpart.  View the entire history of the blockchain as a merged transaction which destroys some coinbase transactions to produce some new outputs.  Over time as outputs are destroyed they can be removed from the balancing equation because they are both added and subtracted.
+
+Concise blockchain digest:
+
+* All coinbase transactions
+* All defects with their signatures
+* All unspent outputs with range proofs and proofs that they were included in a block
+
+## Confidential assets
